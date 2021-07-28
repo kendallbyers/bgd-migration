@@ -1,6 +1,7 @@
 rm(list=ls())
 
-pacman::p_load(data.table,
+pacman::p_load(dplyr,
+               data.table,
                stargazer,
                systemfit,
                aod,
@@ -14,16 +15,16 @@ pacman::p_load(data.table,
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/Kendall Byers/OneDrive - University of Arkansas/Rstudio Projects/PolderMigration/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
 dat <- data.table(dat)
-#View(dat)
+View(dat)
 
 dat <- dat %>%
   select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
          papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
          crop_submerged_plot_1, crop_submerged_plot_2, total_land, #Sec2
          freq_flood, freq_drought, freq_salinity, freq_insects, loss_prod_flood, #Sec4
-         loss_prod_drought, loss_pord_salinity, loss_prod_insect, #Sec4
+         loss_prod_drought, loss_prod_salinity, loss_prod_insect, #Sec4
          memb_wmg, # Sec5
          num_migrants, nature_migrants1, gender_1, age_1, edu_1, place_mig_1, #Sec6
          name_place_1, mig_job_1, loan_mig_1, remitences, women_involve_increase,#Sec6
@@ -60,7 +61,9 @@ dat <- dat %>%
          bullock, cow, colf, buffalo, goat, sheep, pigeon, chiken, duck, goose) #Sec11
 
 dat <- data.table(dat)
-#View(dat)
+dat %>% count(place_mig_1)
+
+dat$place_mig_1 <- as.factor(dat$place_mig_1)
 
 dat$age_hh=as.numeric(dat$age_hh)
 dat$papers_plot=as.numeric(dat$papers_plot)
@@ -207,21 +210,24 @@ summary(ofhungry_movers)
 
 #Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
 ofmovers_hungry <- dat %>%
-  filter(migration == "Migrant") %>%
+  filter(migration == 1) %>%
   select(food_short)
 summary(ofmovers_hungry)
 
 #Food Security: coding shortage-induced food restriction and debt
-# dat$food_restriction <- ifelse(dat$reduce_quantity == "yes" |
-#                                      dat$reduce_time_eat == "yes" |
-#                                      dat$without_food == "yes", "Forced Food Restriction", "No Forced Food Restriction")
-# dat$food_debt <- ifelse(dat$borrow_food == "yes" |
-#                               dat$loan_food == "yes" |
-#                               dat$loan_micro == "yes" |
-#                               dat$exchange_things == "yes" |
-#                               dat$morgate_land == "yes" |
-#                               dat$morgate_non_land == "yes", "Food Debt", "No Food Debt")
 
+dat$food_restriction <- ifelse(dat$reduce_quantity == "Yes" |
+                                      dat$reduce_time_eat == "Yes" |
+                                      dat$without_food == "Yes", "Forced Food Restriction", "No Forced Food Restriction")
+dat$food_debt <- ifelse(dat$borrow_food == "Yes" |
+                               dat$loan_food == "Yes" |
+                               dat$loan_micro == "Yes" |
+                               dat$exchange_things == "Yes" |
+                               dat$morgate_land == "Yes" |
+                               dat$morgate_non_land == "Yes", "Food Debt", "No Food Debt")
+
+dat %>% count(food_restriction)
+dat %>% count(food_debt)
 #Food Consumption Score according to World Food Programme
 
 #FCS thresholds: 0-21 = Poor, 21.5-35 = Borderline, > 35 = Healthy
@@ -261,7 +267,7 @@ reg_var <- dat %>%
   select(farm_types, total_plot_area_ha, migrant_edu_code, Annual_income_Agriculture_combined_USD,
          Annual_income_Non_Agriculture_combined_USD, food_short)
 
-# Base model - demographics etc - sig or not, have to be
+# Base model - demographics etc - significant or not, have to be
 base_reg <- formula("migration ~ farm_types + memb_wmg + total_plot_area_ha + edu_hh_code")
 
 glm(base_reg, family = binomial(link="probit"), data=dat)
