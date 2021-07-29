@@ -1,7 +1,6 @@
 rm(list=ls())
 
-pacman::p_load(dplyr,
-               data.table,
+pacman::p_load(data.table,
                stargazer,
                systemfit,
                aod,
@@ -10,17 +9,21 @@ pacman::p_load(dplyr,
                mfx,
                margins,
                corrplot,
-               gvlma)
-
+               gvlma,
+               dplyr)
+mfx <-read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
+View(mfx)
+library(dplyr)
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+dat <- read.csv("~/R/bgd-migration/data/HHdata_cleanNEW.csv")
 dat <- data.table(dat)
 View(dat)
 
-dat <- dat %>%
-  select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
+
+sel_var <- dat %>%
+  dplyr::select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
          papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
          crop_submerged_plot_1, crop_submerged_plot_2, total_land, #Sec2
          freq_flood, freq_drought, freq_salinity, freq_insects, loss_prod_flood, #Sec4
@@ -60,8 +63,9 @@ dat <- dat %>%
          manual_pump, solar_panel, battery, bank_acc, #Sec11
          bullock, cow, colf, buffalo, goat, sheep, pigeon, chiken, duck, goose) #Sec11
 
-dat <- data.table(dat)
-dat %>% count(place_mig_1)
+sel_var <- data.table(dat)
+View(sel_var)
+sel_var %>% count(place_mig_1)
 
 dat$place_mig_1 <- as.factor(dat$place_mig_1)
 
@@ -105,7 +109,7 @@ dat$farm_types=as.factor(dat$farm_types)
 summary(dat$farm_types)
 
 dat <- dat %>%
-  select(-papers_plot)
+  dplyr::select(-papers_plot)
 
 dat <- dat %>%
   rowwise() %>%
@@ -137,6 +141,8 @@ summary(dat$plot1_status)
 summary(dat$plot2_status)
 
 #There are some data problem with Sec 4:
+summary(dat$freq_insects)
+
 #freq_flood, freq_drought, freq_salinity, freq_insects
 #loss_prod_flood, loss_prod_drought, loss_prod_salinity, loss_prod_insects
 ## I have corrected the data in excel and just copy here.
@@ -219,15 +225,16 @@ summary(ofmovers_hungry)
 dat$food_restriction <- ifelse(dat$reduce_quantity == "Yes" |
                                       dat$reduce_time_eat == "Yes" |
                                       dat$without_food == "Yes", "Forced Food Restriction", "No Forced Food Restriction")
+dat$food_restriction <- as.factor(dat$food_restriction)
 dat$food_debt <- ifelse(dat$borrow_food == "Yes" |
                                dat$loan_food == "Yes" |
                                dat$loan_micro == "Yes" |
                                dat$exchange_things == "Yes" |
                                dat$morgate_land == "Yes" |
                                dat$morgate_non_land == "Yes", "Food Debt", "No Food Debt")
-
-dat %>% count(food_restriction)
-dat %>% count(food_debt)
+dat$food_debt <- as.factor(dat$food_debt)
+summary(dat$food_restriction)
+summary(dat$food_debt)
 #Food Consumption Score according to World Food Programme
 
 #FCS thresholds: 0-21 = Poor, 21.5-35 = Borderline, > 35 = Healthy
@@ -256,29 +263,45 @@ dat %>% count(food_debt)
 
 # Sec 10 - General Social Capital and Housing Assets
 
-# "num_adult_male" "num_adult_female" "num_child_male" "num_child_female"
-#"literate_male" "literate_female" "literate_child_male" "literate_child_female" "working_adult_male" "working_adult_female" "working_child_male" "working_child_female"
+dat$num_adults <- dat$num_adult_male + dat$num_adult_female
+
+dat$kids <- dat$num_child_male + dat$num_child_male
+
+#of kids
+# ofkids_working <- dat %>%
+#   filter(kids > 0) %>%
+#   select(ifelse(dat$working_child_male > 0 | dat$working_child_female > 0))
+# summary(dat$ofkids_working)
+
+dat$hh_size <- dat$num_adults + dat$kids
+mean(dat$hh_size, na.rm = TRUE)
+
 
 # I will develop Wealth Index from Sec 11
 
 #Models
 
 reg_var <- dat %>%
-  select(farm_types, total_plot_area_ha, migrant_edu_code, Annual_income_Agriculture_combined_USD,
+  dplyr::select(age_hh, farm_types, total_plot_area_ha, migrant_edu_code, Annual_income_Agriculture_combined_USD,
          Annual_income_Non_Agriculture_combined_USD, food_short)
 
-# Base model - demographics etc - significant or not, have to be
-base_reg <- formula("migration ~ farm_types + memb_wmg + total_plot_area_ha + edu_hh_code")
+# Base model - demographics etc - significant or not, have to be there
+#basic: owned farm, farm size, religion, household size, number of adult men, household head education,
+colnames(dat)
+base_reg <- formula("migration ~ farm_types + total_plot_area_ha + age_hh + gender_hh + edu_hh_code + working_adult_male")
 
-glm(base_reg, family = binomial(link="probit"), data=dat)
+basemod <- glm(base_reg, family = binomial(link="probit"), data=dat)
 
-Mod1 <- glm(migration ~ farm_types + memb_wmg + total_plot_area_ha + edu_hh_code + loss_prod_insect + loss_prod_drought +
-              loss_prod_salinity + loss_prod_flood + num_adult_male + literate_male +
-              Annual_income_Agriculture_combined_USD,
-              family = binomial(link = "probit"), data = dat)
+summary(basemod)
 
-summ(Mod1)
+#basemod significance: 100% Muslim, 99% age_hh, 90% working_adult_male, 90% num_rooms
+ofmovers_Muslim <- dat %>%
+  filter(migration == 1) %>%
+  select(religion_hh == "islam")
+summary(ofmovers_Muslim)
 
-# Specific test #1 - income on migration
+# Specific test #1 - farm failure due to environmental causes
 
-# Specific test #2
+# Specific test #2 - income and debt load on migration
+
+# Specific test #3 - food insecurity - food shortage, food restriction, food debt, food consumption score class
