@@ -11,9 +11,10 @@ pacman::p_load(data.table,
                corrplot,
                gvlma,
                dplyr)
-mfx <-read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
-View(mfx)
-library(dplyr)
+
+# mfx <-read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
+# View(mfx)
+# library(dplyr)
 ###############################################################################
 
 #Load original polder data file
@@ -23,7 +24,7 @@ View(dat)
 
 
 sel_var <- dat %>%
-  dplyr::select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
+  select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
          papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
          crop_submerged_plot_1, crop_submerged_plot_2, total_land, #Sec2
          freq_flood, freq_drought, freq_salinity, freq_insects, loss_prod_flood, #Sec4
@@ -63,11 +64,11 @@ sel_var <- dat %>%
          manual_pump, solar_panel, battery, bank_acc, #Sec11
          bullock, cow, colf, buffalo, goat, sheep, pigeon, chiken, duck, goose) #Sec11
 
-sel_var <- data.table(dat)
-View(sel_var)
-sel_var %>% count(place_mig_1)
-
-dat$place_mig_1 <- as.factor(dat$place_mig_1)
+# sel_var <- data.table(dat)
+View(dat)
+# sel_var %>% count(place_mig_1)
+#
+# dat$place_mig_1 <- as.factor(dat$place_mig_1)
 
 dat$age_hh=as.numeric(dat$age_hh)
 dat$papers_plot=as.numeric(dat$papers_plot)
@@ -101,7 +102,16 @@ summary(dat$migration)
 dat$edu_hh_code <- ifelse(dat$edu_hh == "no school", "Illiterate", "Literate")
 dat$edu_hh_code=as.factor(dat$edu_hh_code)
 
+dat$edu_hh_spouse_code <- ifelse(dat$edu_hh_spouse == "no school", "Illiterate", "Literate")
+dat$edu_hh_spouse_code=as.factor(dat$edu_hh_spouse_code)
+
 summary(dat$edu_hh_code)
+summary(dat$edu_hh_spouse_code)
+
+dat$both_literate <- ifelse(dat$edu_hh_code == "Literate" &
+                            dat$edu_hh_spouse_code == "Literate", "Educated Parents", "An Illiterate Parent")
+dat$both_literate  <- as.factor(dat$both_literate)
+summary(dat$both_literate)
 
 dat$farm_types <- ifelse(dat$papers_plot > 0, "Have Plot Papers", "No Papers")
 dat$farm_types=as.factor(dat$farm_types)
@@ -152,6 +162,7 @@ dat$migrant_edu_code=as.factor(dat$migrant_edu_code)
 dat <- dat %>%
   select(-edu_1)
 
+
 summary(dat$migrant_edu_code)
 
 dat$migration_place <- ifelse(dat$place_mig_1 == "abroad", "Abroad",
@@ -192,6 +203,20 @@ dat <- dat %>%
 dat$Annual_income_Remittance_USD=as.integer(dat$Annual_income_Remittance_USD)
 summary(dat$Annual_income_Remittance_USD)
 
+attributes(dat)
+
+#sum the annual income for use as regressor
+#THIS CODE DID NOT WORK
+# dat$total_income <- dat %>% mutate([485]:[496], na.rm=TRUE)
+# dat$annual_income <- rowSums(dat, na.rm = TRUE, as.numeric(c("annual_income_poultry", "annual_income_fish", "annual_income_vege",
+                      # "annual_income_assests", "annual_income_wage", "annual_income_wage_non_agri",
+                      # "annual_salary_pension", "annual_income_ren", "annual_income_bussi", "annual_income_transport",
+                      # "annual_income_caste_occu", "annual_income_others")))
+
+#What are the average total savings, and is that a potential regressor?
+summary(dat$total_savings, na.rm = TRUE)
+median(dat$total_savings, na.rm = TRUE)
+boxplot(dat$total_savings,  na.rm = TRUE)
 #Coding Food Shortages in Any Month as variable
 dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_jios == "food shortage" |
@@ -266,16 +291,20 @@ summary(dat$food_debt)
 dat$num_adults <- dat$num_adult_male + dat$num_adult_female
 
 dat$kids <- dat$num_child_male + dat$num_child_male
-
-#of kids
-# ofkids_working <- dat %>%
-#   filter(kids > 0) %>%
-#   select(ifelse(dat$working_child_male > 0 | dat$working_child_female > 0))
-# summary(dat$ofkids_working)
+hist(dat$working_child_male)
+class(dat$workingkids)
+dat$workingkids <- ifelse(dat$working_child_female > 0 |
+                            dat$working_child_male > 0, 1, 0)
 
 dat$hh_size <- dat$num_adults + dat$kids
 mean(dat$hh_size, na.rm = TRUE)
+hist(dat$hh_size)
+summary(dat$hh_size)
 
+#what about dependent adults? Does increased dependents further increase migration?
+dat$loafers <- (dat$num_adults - (dat$working_adult_female + dat$working_adult_male))
+dat$dependents <- dat$loafers + dat$kids - dat$workingkids
+hist(dat$dependents)
 
 # I will develop Wealth Index from Sec 11
 
@@ -288,19 +317,39 @@ reg_var <- dat %>%
 # Base model - demographics etc - significant or not, have to be there
 #basic: owned farm, farm size, religion, household size, number of adult men, household head education,
 colnames(dat)
-base_reg <- formula("migration ~ farm_types + total_plot_area_ha + age_hh + gender_hh + edu_hh_code + working_adult_male")
+base_reg <- formula("migration ~ farm_types + total_plot_area_ha + age_hh + num_male_agri_lobor + working_adult_female + kids")
 
 basemod <- glm(base_reg, family = binomial(link="probit"), data=dat)
 
 summary(basemod)
+dat$migrant_edu_code
 
-#basemod significance: 100% Muslim, 99% age_hh, 90% working_adult_male, 90% num_rooms
-ofmovers_Muslim <- dat %>%
-  filter(migration == 1) %>%
-  select(religion_hh == "islam")
-summary(ofmovers_Muslim)
+#basemod significance: 100% religion_hh (Muslim), 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms
+#why is Islam influencing migration? Minority status?
 
-# Specific test #1 - farm failure due to environmental causes
+# Specific test #1a - frequency of environmental stress in past 5 years - both flood (100%) and insects (90%) were significantly frequent,
+# while drought and salinity were not
+
+clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + freq_insects")
+freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
+summary(freqmod)
+
+# test 1b - crop loss due to environmental cause in the past 5 years - lost production was not significant unless gated to >50%
+clim_loss1 <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
+lossmod1 <- glm(clim_loss1, family = binomial(link="probit"), data=dat)
+summary(lossmod1)
+summary(dat$loss_prod_insect)
+hist(dat$loss_prod_flood)
+
+#creating binary thresholds for above mean production loss
+dat$flood_bin <- ifelse(dat$loss_prod_flood >= 0.3175, 1, 0)
+dat$drought_bin <- ifelse(dat$loss_prod_flood >= 0.1578, 1, 0)
+dat$salinity_bin <- ifelse(dat$loss_prod_flood >= 0.0799, 1, 0)
+dat$insect_bin <- ifelse(dat$loss_prod_flood >= 0.2116, 1, 0)
+clim_loss2 <- formula("migration ~ flood_bin + drought_bin + salinity_bin + insect_bin")
+lossmod2 <- glm(clim_loss2, family = binomial(link="probit"), data=dat)
+summary(lossmod2)
+
 
 # Specific test #2 - income and debt load on migration
 
