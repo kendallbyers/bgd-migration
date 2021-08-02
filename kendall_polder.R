@@ -1,6 +1,7 @@
 rm(list=ls())
 
-pacman::p_load(data.table,
+pacman::p_load(ggplot2,
+               data.table,
                stargazer,
                systemfit,
                aod,
@@ -8,7 +9,6 @@ pacman::p_load(data.table,
                texreg,
                mfx,
                margins,
-               corrplot,
                gvlma,
                dplyr)
 
@@ -18,10 +18,19 @@ pacman::p_load(data.table,
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
+
+#It would be good to isolate explanatory data descriptors to generate a summary table.
+dat$religion_hh
+
+ggplot(data = dat) +
+  geom_bar(mapping = aes(x = religion_hh))
+dat %>%
+  count(religion_hh)
+
 
 # sel_var <- dat %>%
 #   select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
@@ -98,10 +107,14 @@ dat$migration <- ifelse(dat$num_migrants > 0, 1, 0)
 dat$migration = as.factor(dat$migration)
 
 summary(dat$migration)
+ggplot(data = dat) +
+  geom_bar(mapping = aes(x = migration))
 
 # Separating permanent vs seasonal labor
 dat$nature_migrants1 <- as.factor(dat$nature_migrants1)
 summary(dat$nature_migrants1)
+dat$nature_migrants2 <- as.factor(dat$nature_migrants2)
+summary(dat$nature_migrants2)
 
 #Coding literacy
 dat$edu_hh_code <- ifelse(dat$edu_hh == "no school", "Illiterate", "Literate")
@@ -122,7 +135,10 @@ summary(dat$both_literate)
 dat$farm_types <- ifelse(dat$papers_plot > 0, "Have Plot Papers", "No Papers")
 dat$farm_types=as.factor(dat$farm_types)
 
-summary(dat$farm_types)
+#tenancy
+dat$sharecropping <- ifelse(dat$cultivate_without_papers > dat$papers_plot, "Tenant farmer", "Landowner")
+dat$sharecropping=as.factor(dat$sharecropping)
+summary(dat$sharecropping)
 
 dat <- dat %>%
   dplyr::select(-papers_plot)
@@ -133,7 +149,11 @@ dat <- dat %>%
   mutate(total_plot_area_ha = total_plot_area * 0.00404686) %>% # Convert decimal to hectare
   select(-total_plot_area) # Deleted "total_plot_area" decimal column
 
+#Median farm size is 1 acre (.4 ha), mean = .56 ha
 summary(dat$total_plot_area_ha)
+median(dat$total_plot_area_ha)
+ggplot(data = dat, mapping = aes(x = total_plot_area_ha, colour = total_plot_area_ha)) +
+  geom_freqpoly(binwidth = 0.1)
 
 dat <- dat %>%
   select(-area_plot_1)
@@ -159,18 +179,22 @@ summary(dat$plot2_status)
 dat$crop_sunk <- ifelse(dat$crop_submerged_plot_1 == "yes" |
                           dat$crop_submerged_plot_2 == "yes", "Crops Sunk", "Not Sunk")
 dat$crop_sunk <- as.factor(dat$crop_sunk)
-summary(dat$crop_sunk)
+summary(dat$crop_sunk) #257 respondents had submerged crops
 
 dat$low_land <- ifelse(dat$elevation_plot_1 == "Low" |
                          dat$elevation_plot_2 == "Low", "Lowland", "Not Lowland")
 dat$low_land <- as.factor(dat$low_land)
-summary(dat$low_land)
+summary(dat$low_land) #242 respondents said that they cropped in lowlying land
 
 #alternate measurement for lowland - percentage
 
 dat$percent_abovesea <- ((dat$high_agri_land + dat$medium_agri_land)/dat$total_land)*100
-
+summary(dat$percent_abovesea) #55%
 hist(dat$percent_abovesea)
+
+dat$percent_lowland <- (dat$low_agri_land/dat$total_land)*100
+summary(dat$percent_lowland) #14% is mean lowland percent of total land
+hist(dat$percent_lowland)
 
 #coding poor infrastructure
 dat$bad_canals <- ifelse(dat$condition_canals < 5, "Poor Canal Condition", "OK Canals")
@@ -185,33 +209,38 @@ dat$bad_gates <- ifelse(dat$cond_gate <5, "Poor sluice gates", "OK sluice gates"
 dat$bad_gates <- as.factor(dat$bad_gates)
 summary(dat$bad_gates)
 
-## Migration - our dependent factor, binarized
+# Coding Education as migrant characteristic
 
 dat$migrant_edu_code <- ifelse(dat$edu_1 > 1, "Literate", "Illiterate")
 dat$migrant_edu_code=as.factor(dat$migrant_edu_code)
 dat <- dat %>%
   select(-edu_1)
 
-
+#150/165 of migrants had at least 1 year of education (can read), while 14 did not
 summary(dat$migrant_edu_code)
 
+#18/165 (11%) headed abroad, 35 (21%) migrated to other rural areas, 97 (59%) migrated to urban areas, and 12 (7%) to multiple places
 dat$migration_place <- ifelse(dat$place_mig_1 == "abroad", "Abroad",
                            ifelse(dat$place_mig_1 == "rural","Rural",
                            ifelse(dat$place_mig_1 == "urban","Urban","Multiple Locations")))
 
 dat$migration_place=as.factor(dat$migration_place)
 summary(dat$migration_place)
+
 dat <- dat %>%
   select(-place_mig_1)
 
+#42 (25%) of first migrants took loans to travel, 16 of those (38%) from institutions and 26 from social networks (relatives, social credit groups)
 dat$loan_mig_1 <- as.factor(dat$loan_mig_1)
 summary(dat$loan_mig_1)
 
 dat$migrant_debt <- ifelse(dat$loan_mig_1 != "no loan"|
                              dat$loan_mig_2 !="no loan", "Loan Taken", "No Loan")
 dat$migrant_debt <- as.factor(dat$migrant_debt)
-summary(dat$migrant_debt)
-#Annual income from Agriculture Sources
+summary(dat$migrant_debt) #Of migrants, 46 loans taken, 17 no loan
+
+#Annual income from Agriculture Sources - Median agri income is $294/yr, Mean is $426/year
+
 dat <- dat %>%
   rowwise() %>%
   mutate(Annual_income_Agriculture_BDT = sum(annual_income_poultry, annual_income_fish, annual_income_vege,
@@ -220,9 +249,10 @@ dat <- dat %>%
   mutate(Annual_income_Agriculture_combined_USD = Annual_income_Agriculture_BDT / 84.75) %>% # One USD = 84.75 BDT
   select(-Annual_income_Agriculture_BDT)
 dat$Annual_income_Agriculture_combined_USD=as.integer(dat$Annual_income_Agriculture_combined_USD)
+
 summary(dat$Annual_income_Agriculture_combined_USD)
 
-#Annual income from Non-Agriculture Sources
+#Annual income from Non-Agriculture Sources - Median = $117/yr, Mean = $352/yr
 dat <- dat %>%
   rowwise() %>%
   mutate(Annual_income_Non_Agriculture_BDT = sum(annual_income_wage_non_agri, annual_salary_pension, annual_income_bussi,
@@ -233,29 +263,23 @@ dat <- dat %>%
 dat$Annual_income_Non_Agriculture_combined_USD=as.integer(dat$Annual_income_Non_Agriculture_combined_USD)
 summary(dat$Annual_income_Non_Agriculture_combined_USD)
 
-#Annual income from Remittance
+#Annual income from Remittance - Median = $707, Mean = $640/yr, although wider distribution than either local work
 dat <- dat %>%
   mutate(Annual_income_Remittance_USD = annual_income_remi / 84.75) %>% # One BDT = 84.75 USD
   select(-annual_income_remi)
 dat$Annual_income_Remittance_USD=as.integer(dat$Annual_income_Remittance_USD)
 summary(dat$Annual_income_Remittance_USD)
 
-attributes(dat)
+#How to compare the wider distribution of remittances against agri/non-agri household income?
 
-#sum the annual income for use as regressor?
-#THIS CODE DID NOT WORK v
-# dat$total_income <- dat %>% mutate([485]:[496], na.rm=TRUE)
-# dat$annual_income <- rowSums(dat, na.rm = TRUE, as.numeric(c("annual_income_poultry", "annual_income_fish", "annual_income_vege",
-                      # "annual_income_assests", "annual_income_wage", "annual_income_wage_non_agri",
-                      # "annual_salary_pension", "annual_income_ren", "annual_income_bussi", "annual_income_transport",
-                      # "annual_income_caste_occu", "annual_income_others")))
-
-#What are the average total savings, and is that a potential regressor?
+#What are the average total savings, and is that a potential regressor? - Median is 300 (bdt?), Mean is 634 bdt
 summary(dat$total_savings, na.rm = TRUE)
-median(dat$total_savings, na.rm = TRUE)
-boxplot(dat$total_savings,  na.rm = TRUE)
 
-#remittances priorities: if loan or food or
+
+#remittances priorities: if loan or food
+#TO DO: subset analysis using filter and select of migrant's 1st or 2nd priorities (push/pull determination)
+
+
 #Coding Food Shortages in Any Month as variable
 dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_jios == "food shortage" |
@@ -289,6 +313,18 @@ ofmovers_hungry <- dat %>%
   select(food_short)
 summary(ofmovers_hungry)
 
+# Age, gender of First Migrants and Second Migrants
+summary(dat$age_1) #median is 32, mean is 34
+dat$gender_1 <- as.factor(dat$gender_1)
+summary(dat$gender_1) #4.8 percent female, 95% male
+
+summary(dat$age_2) #median is 30, mean is 31
+dat$gender_2 <- as.factor(dat$gender_2)
+summary(dat$gender_2) # 82% male, 18% female (only 22 migrants)
+
+dat$gender_3 <- as.factor(dat$gender_3)
+summary(dat$gender_3) # 2 males, one is 25 and the other is 28
+
 #Food Security: coding shortage-induced food restriction and debt
 
 dat$food_restriction <- ifelse(dat$reduce_quantity == "Yes" |
@@ -302,71 +338,104 @@ dat$food_debt <- ifelse(dat$borrow_food == "Yes" |
                                dat$morgate_land == "Yes" |
                                dat$morgate_non_land == "Yes", "Food Debt", "No Food Debt")
 dat$food_debt <- as.factor(dat$food_debt)
+#93 restricted food quantity, number of meals, and went without food. 132 did not. 800 NAs
 summary(dat$food_restriction)
+
+#211 took on debt for food, 17 did not - 797 NAs
 summary(dat$food_debt)
 
 #calculating rice (kg) per capita
 head(dat$quantity_rice)
-dat$rice_per_capita <- dat$quantity_rice/dat$hh_size
+dat$rice_per_capita <- (dat$quantity_rice)/dat$hh_size
 hist(dat$rice_per_capita)
+summary(dat$rice_per_capita) #Median & Mean is 3kg/wk
+
 #Food Consumption Score according to World Food Programme
 
 #FCS thresholds: 0-21 = Poor, 21.5-35 = Borderline, > 35 = Healthy
 
-# #FCS <- dat %>% select(rice, wheat, maize, potato,
-#               pulses,
-#               fruits,
-#               vegetable,
-#               egges, meat, meat_chi, fish,
-#               dairy,
-#               oils)
+FCS <- dat %>% select(rice, wheat, maize, potato,
+               pulses,
+               fruits,
+               vegetable,
+               egges, meat, meat_chi, fish,
+               dairy,
+               oils)
 #FCS formula = (Main staples)*2 + (Pulses)*3 + (Veg)*1 + (Fruit)*1 + (Meat + Fish)*4 + (Milk)*4 + (Sugar)*0.5 + (Oil)*0.5
 #Round down to 7 if any food group exceeds 7, prior to multiplying
-# FCS$staples <- FCS %>% (rice + wheat + maize + potato
-#                         %>% >= 7, then 7
-#                         %>% staples*2
-#
-# FCS$dal <- (if FCS$pulses >7, then 7)*3
-# FCS$phal <- FCS$fruits
-# FCS$sabzi <- FCS$vegetable
-# FCS$protein <- FCS %>% (egges + meat + meat_chi + fish) #round down to 7, then multiply by 4
-# FCS$dood <- FCS %>% dairy*4
-# FCS$tel <- FCS %>% oil/2
-# FCS$rawscore = FCS %>% sum (staples + dal + phal + sabzi + protein + dood + tel)
+
+FCS$staples <- (dat$rice + dat$wheat + dat$maize + dat$potato)
+FCS$staples[dat$rice + dat$wheat + dat$maize + dat$potato > 7] <- 7
+FCS$staples <- FCS$staples*2
+
+FCS$pulses <- dat$pulses
+FCS$pulses[FCS$pulses > 7] <-7
+FCS$pulses <- FCS$pulses*3
+
+FCS$veg <- dat$vegetable
+FCS$veg[FCS$veg >7] <- 7
+hist(FCS$veg)
+
+FCS$fruit <- dat$fruits
+summary(FCS$fruit)
+FCS$fruit[FCS$fruit >7] <- 7
+
+FCS$protein <- (dat$egges + dat$meat + dat$meat_chi + dat$fish)
+FCS$protein[dat$egges + dat$meat + dat$meat_chi + dat$fish > 7] <- 7
+FCS$protein <- FCS$protein*4
+
+FCS$dairy <- dat$dairy
+FCS$dairy[FCS$dairy > 7] <- 7
+FCS$dairy <- FCS$dairy*4
+
+FCS$oils <- dat$oils
+FCS$oils[FCS$oils > 7] <- 7
+FCS$oils <- FCS$oils/2
+
+FCS$total <- FCS$staples + FCS$pulses + FCS$veg + FCS$fruit + FCS$protein + FCS$dairy + FCS$oils
+hist(FCS$total)
+
+FCS$Food_Consumption_Score[FCS$total < 21] = "Poor"
+FCS$Food_Consumption_Score[FCS$total > 21.5 & FCS$total < 35] = "Borderline"
+FCS$Food_Consumption_Score[FCS$total > 35] = "Healthy"
+FCS$Food_Consumption_Score <- as.factor(FCS$Food_Consumption_Score)
+summary(FCS$Food_Consumption_Score)
+
+dat$FCS <- FCS$Food_Consumption_Score
+
 # if rawscore =< 21 then "Poor", if rawscore =>21.5 <=35 then "Borderline", if rawscore > 35 then "Healthy"
 
 # Sec 10 - General Social Capital and Housing Assets
 
 dat$num_adults <- dat$num_adult_male + dat$num_adult_female
+hist(dat$num_adults)
 
 dat$kids <- dat$num_child_male + dat$num_child_male
 hist(dat$kids)
 
 dat$workingkids <- ifelse(dat$working_child_female > 0 |
                             dat$working_child_male > 0, 1, 0)
-class(dat$workingkids)
+hist(dat$workingkids)
+#incidence of child labor is very low
+
 dat$hh_size <- dat$num_adults + dat$kids
 mean(dat$hh_size, na.rm = TRUE)
 hist(dat$hh_size)
-summary(dat$hh_size)
+summary(dat$hh_size) #mean HH size is 5 people, median is 4
 
 #what about dependent adults? Does increased dependents further increase migration?
-dat$loafers <- (dat$num_adults - (dat$working_adult_female + dat$working_adult_male))
-dat$dependents <- dat$loafers + dat$kids - dat$workingkids
-hist(dat$dependents)
+dat$retired <- (dat$num_adults - (dat$working_adult_female + dat$working_adult_male))
+dat$retired <- dat$retired + dat$kids - dat$workingkids
+hist(dat$retired)
 
-# I will develop Wealth Index from Sec 11
+# Compute Wealth Index from Sec 11 here:
 
 #Models
 
-# reg_var <- dat %>%
-  # dplyr::select(age_hh, farm_types, total_plot_area_ha, migrant_edu_code, Annual_income_Agriculture_combined_USD,
-  #        Annual_income_Non_Agriculture_combined_USD, food_short)
-
 # Base model - demographics etc - significant or not, have to be there
-#basic: owned farm, farm size, religion, household size, number of adult men, household head education,
 colnames(dat)
-base_reg <- formula("migration ~ farm_types + total_plot_area_ha + age_hh + num_male_agri_lobor + working_adult_female + kids")
+
+base_reg <- formula("migration ~ farm_types + sharecropping + total_plot_area_ha + age_hh + num_male_agri_lobor + working_adult_female + kids")
 
 basemod <- glm(base_reg, family = binomial(link="probit"), data=dat)
 
@@ -387,10 +456,10 @@ summary(freqmod)
 clim_loss1 <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect + low_land +
                       bad_gates + bad_canals + bad_embankments")
 lossmod1 <- glm(clim_loss1, family = binomial(link="probit"), data=dat)
-summ(lossmod1)
+summary(lossmod1)
 
 
-#creating binary thresholds for above mean production loss
+#creating binary thresholds for above mean production loss - these saw no correlation
 dat$flood_bin <- ifelse(dat$loss_prod_flood >= 0.3175, 1, 0)
 dat$drought_bin <- ifelse(dat$loss_prod_flood >= 0.1578, 1, 0)
 dat$salinity_bin <- ifelse(dat$loss_prod_flood >= 0.0799, 1, 0)
@@ -401,7 +470,6 @@ lossmod2 <- glm(clim_loss2, family = binomial(link="probit"), data=dat)
 summary(lossmod2)
 
 # Specific test #2 - income and debt load on migration - income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
-colnames(dat)
 
 money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_income_Non_Agriculture_combined_USD +
                  farm_types + kids + num_rooms + income_rent + income_caste_occu +
@@ -409,5 +477,17 @@ money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_in
 moneymod <- glm(money, family = binomial(link="probit"), data=dat)
 summary(moneymod)
 
-# Specific test #3 - food insecurity - food shortage, food restriction, food debt, food consumption score class
 
+# Specific test #3 - food insecurity - food shortage, food restriction, food debt, food consumption score class
+class(dat$food_short)
+
+hunger_reg <- formula("migration ~ food_restriction + rice_per_capita + food_debt + FCS")
+hungermod <- glm(hunger_reg, family = binomial(link="probit"), data=dat)
+summary(hungermod) #No Food Shortage (99% correlated), No Forced Food Restriction (90% correlated)
+
+#Monthly hunger correlation - Having adequate food in months of Poush (90%) and Magh (95%) indicate migration
+monga <- formula("migration ~ food_short_boi + food_short_jios + food_short_ash + food_short_sra +
+                 food_short_bhadro + food_short_ashshin + food_short_kartik + food_short_ograon +
+                 food_short_poush + food_short_magh + food_short_falgun + food_short_choitro")
+monga_mod <- glm(monga, family = binomial(link="probit"), data=dat)
+summary(monga_mod)
