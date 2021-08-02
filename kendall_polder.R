@@ -18,54 +18,54 @@ pacman::p_load(data.table,
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("~/R/bgd-migration/data/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+
 dat <- data.table(dat)
 View(dat)
 
-
-sel_var <- dat %>%
-  select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
-         papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
-         crop_submerged_plot_1, crop_submerged_plot_2, total_land, #Sec2
-         freq_flood, freq_drought, freq_salinity, freq_insects, loss_prod_flood, #Sec4
-         loss_prod_drought, loss_prod_salinity, loss_prod_insect, #Sec4
-         memb_wmg, # Sec5
-         num_migrants, nature_migrants1, gender_1, age_1, edu_1, place_mig_1, #Sec6
-         name_place_1, mig_job_1, loan_mig_1, remitences, women_involve_increase,#Sec6
-         agi_group, water_use_group, credit_group, lg_group, womens_group, #Sec7
-         development_gp, #Sec7
-         num_male_agri_lobor, wage_male_lobor, num_female_agri_lobor, #Sec8
-         wage_female_agri_lobor, num_male_nonagri_lobor, wage_male_nonagri_lobor, #Sec8
-         num_female_nonagri_lobor, wage_female_nonagri_lobor, income_poultry, #Sec8
-         income_fish, income_vege, income_assests, income_wage, #Sec8
-         income_wage_nonagri, salary_pension, income_remi, income_rent, #Sec8
-         income_bussiness, income_transport, income_caste_occu, income_other, #Sec8
-         annual_income_poultry, annual_income_fish, annual_income_vege, #Sec8
-         annual_income_assests, annual_income_wage, annual_income_wage_non_agri, #Sec8
-         annual_salary_pension, annual_income_remi, annual_income_ren, #Sec8
-         annual_income_bussi, annual_income_transport, annual_income_caste_occu, #Sec8
-         annual_income_others, #Sec8
-         food_short_boi, food_short_jios, food_short_ash, food_short_sra, #Sec9
-         food_short_bhadro, food_short_ashshin, food_short_kartik, food_short_ograon, #Sec9
-         food_short_poush, food_short_magh, food_short_falgun, food_short_choitro, #Sec9
-         reduce_quantity, reduce_time_eat, without_food, borrow_food, loan_food, #Sec9
-         loan_micro, exchange_things, morgate_land, morgate_non_land, #Sec9
-         rice, wheat, maize, potato, vegetable, fruits, pulses, egges, #Sec9
-         meat, meat_chi, fish, oils, dairy, quantity_rice, #Sec9
-         num_adult_male, num_adult_female, num_child_male, num_child_female, #Sec10
-         literate_male, literate_female, literate_child_male, literate_child_female, #Sec10
-         working_adult_male, working_adult_female, working_child_male, working_child_female, #Sec10
-         latrine, elctricity, month_stock, paddy_boi, paddy_jois, paddy_asharh, #Sec10
-         paddy_srabon, paddy_bhadro, paddy_ashshin, paddy_katrik, paddy_ogra, #Sec10
-         paddy_poush, paddy_magh, paddy_falgun, paddy_choitro, income_1, #Sec10
-         khat, chair, table, sofa, almira, wooden_box, radio, television, sew_machine, #Sec11
-         stove, mobile, bicycle, rickshaw, motorcycle, plough, power_tiller, #Sec11
-         thresing_machine, spray_machine, husking_machine, tredle_pump, #Sec11
-         manual_pump, solar_panel, battery, bank_acc, #Sec11
-         bullock, cow, colf, buffalo, goat, sheep, pigeon, chiken, duck, goose) #Sec11
+# sel_var <- dat %>%
+#   select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
+#          papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
+#          crop_submerged_plot_1, crop_submerged_plot_2, total_land, #Sec2
+#          freq_flood, freq_drought, freq_salinity, freq_insects, loss_prod_flood, #Sec4
+#          loss_prod_drought, loss_prod_salinity, loss_prod_insect, #Sec4
+#          memb_wmg, # Sec5
+#          num_migrants, nature_migrants1, gender_1, age_1, edu_1, place_mig_1, #Sec6
+#          name_place_1, mig_job_1, loan_mig_1, remitences, women_involve_increase,#Sec6
+#          agi_group, water_use_group, credit_group, lg_group, womens_group, #Sec7
+#          development_gp, #Sec7
+#          num_male_agri_lobor, wage_male_lobor, num_female_agri_lobor, #Sec8
+#          wage_female_agri_lobor, num_male_nonagri_lobor, wage_male_nonagri_lobor, #Sec8
+#          num_female_nonagri_lobor, wage_female_nonagri_lobor, income_poultry, #Sec8
+#          income_fish, income_vege, income_assests, income_wage, #Sec8
+#          income_wage_nonagri, salary_pension, income_remi, income_rent, #Sec8
+#          income_bussiness, income_transport, income_caste_occu, income_other, #Sec8
+#          annual_income_poultry, annual_income_fish, annual_income_vege, #Sec8
+#          annual_income_assests, annual_income_wage, annual_income_wage_non_agri, #Sec8
+#          annual_salary_pension, annual_income_remi, annual_income_ren, #Sec8
+#          annual_income_bussi, annual_income_transport, annual_income_caste_occu, #Sec8
+#          annual_income_others, #Sec8
+#          food_short_boi, food_short_jios, food_short_ash, food_short_sra, #Sec9
+#          food_short_bhadro, food_short_ashshin, food_short_kartik, food_short_ograon, #Sec9
+#          food_short_poush, food_short_magh, food_short_falgun, food_short_choitro, #Sec9
+#          reduce_quantity, reduce_time_eat, without_food, borrow_food, loan_food, #Sec9
+#          loan_micro, exchange_things, morgate_land, morgate_non_land, #Sec9
+#          rice, wheat, maize, potato, vegetable, fruits, pulses, egges, #Sec9
+#          meat, meat_chi, fish, oils, dairy, quantity_rice, #Sec9
+#          num_adult_male, num_adult_female, num_child_male, num_child_female, #Sec10
+#          literate_male, literate_female, literate_child_male, literate_child_female, #Sec10
+#          working_adult_male, working_adult_female, working_child_male, working_child_female, #Sec10
+#          latrine, elctricity, month_stock, paddy_boi, paddy_jois, paddy_asharh, #Sec10
+#          paddy_srabon, paddy_bhadro, paddy_ashshin, paddy_katrik, paddy_ogra, #Sec10
+#          paddy_poush, paddy_magh, paddy_falgun, paddy_choitro, income_1, #Sec10
+#          khat, chair, table, sofa, almira, wooden_box, radio, television, sew_machine, #Sec11
+#          stove, mobile, bicycle, rickshaw, motorcycle, plough, power_tiller, #Sec11
+#          thresing_machine, spray_machine, husking_machine, tredle_pump, #Sec11
+#          manual_pump, solar_panel, battery, bank_acc, #Sec11
+#          bullock, cow, colf, buffalo, goat, sheep, pigeon, chiken, duck, goose) #Sec11
 
 # sel_var <- data.table(dat)
-View(dat)
+# View(dat)
 # sel_var %>% count(place_mig_1)
 #
 # dat$place_mig_1 <- as.factor(dat$place_mig_1)
@@ -99,6 +99,11 @@ dat$migration = as.factor(dat$migration)
 
 summary(dat$migration)
 
+# Separating permanent vs seasonal labor
+dat$nature_migrants1 <- as.factor(dat$nature_migrants1)
+summary(dat$nature_migrants1)
+
+#Coding literacy
 dat$edu_hh_code <- ifelse(dat$edu_hh == "no school", "Illiterate", "Literate")
 dat$edu_hh_code=as.factor(dat$edu_hh_code)
 
@@ -113,6 +118,7 @@ dat$both_literate <- ifelse(dat$edu_hh_code == "Literate" &
 dat$both_literate  <- as.factor(dat$both_literate)
 summary(dat$both_literate)
 
+#papers or no papers for worked agricultural fields
 dat$farm_types <- ifelse(dat$papers_plot > 0, "Have Plot Papers", "No Papers")
 dat$farm_types=as.factor(dat$farm_types)
 
@@ -135,13 +141,12 @@ dat <- dat %>%
 dat <- dat %>%
   select(-area_plot_2)
 
-#We can use the above one (farm types)
+#status of plot 1 and plot 2 - "farm types" is the preferred variable, however
 dat$plot1_status <- ifelse(dat$status_plot_1 == "Have papers and used by the HH", "Owned", "Lease & Shared")
 dat$plot1_status=as.factor(dat$plot1_status)
 dat <- dat %>%
   select(-status_plot_1)
 
-#We can use the above one (farm types)
 dat$plot2_status <- ifelse(dat$status_plot_2 == "Have papers and used by the HH", "Owned", "Lease & Shared")
 dat$plot2_status=as.factor(dat$plot2_status)
 dat <- dat %>%
@@ -150,12 +155,37 @@ dat <- dat %>%
 summary(dat$plot1_status)
 summary(dat$plot2_status)
 
-#There are some data problem with Sec 4:
-summary(dat$freq_insects)
+#Coding for sunk crops and low elevation land:
+dat$crop_sunk <- ifelse(dat$crop_submerged_plot_1 == "yes" |
+                          dat$crop_submerged_plot_2 == "yes", "Crops Sunk", "Not Sunk")
+dat$crop_sunk <- as.factor(dat$crop_sunk)
+summary(dat$crop_sunk)
 
-#freq_flood, freq_drought, freq_salinity, freq_insects
-#loss_prod_flood, loss_prod_drought, loss_prod_salinity, loss_prod_insects
-## I have corrected the data in excel and just copy here.
+dat$low_land <- ifelse(dat$elevation_plot_1 == "Low" |
+                         dat$elevation_plot_2 == "Low", "Lowland", "Not Lowland")
+dat$low_land <- as.factor(dat$low_land)
+summary(dat$low_land)
+
+#alternate measurement for lowland - percentage
+
+dat$percent_abovesea <- ((dat$high_agri_land + dat$medium_agri_land)/dat$total_land)*100
+
+hist(dat$percent_abovesea)
+
+#coding poor infrastructure
+dat$bad_canals <- ifelse(dat$condition_canals < 5, "Poor Canal Condition", "OK Canals")
+dat$bad_canals <- as.factor(dat$bad_canals)
+summary(dat$bad_canals)
+
+dat$bad_embankments <- ifelse(dat$condi_embankment <5, "Poor embankment condition", "OK Embankments")
+dat$bad_embankments <- as.factor(dat$bad_embankments)
+summary(dat$bad_embankments)
+
+dat$bad_gates <- ifelse(dat$cond_gate <5, "Poor sluice gates", "OK sluice gates")
+dat$bad_gates <- as.factor(dat$bad_gates)
+summary(dat$bad_gates)
+
+## Migration - our dependent factor, binarized
 
 dat$migrant_edu_code <- ifelse(dat$edu_1 > 1, "Literate", "Illiterate")
 dat$migrant_edu_code=as.factor(dat$migrant_edu_code)
@@ -174,6 +204,13 @@ summary(dat$migration_place)
 dat <- dat %>%
   select(-place_mig_1)
 
+dat$loan_mig_1 <- as.factor(dat$loan_mig_1)
+summary(dat$loan_mig_1)
+
+dat$migrant_debt <- ifelse(dat$loan_mig_1 != "no loan"|
+                             dat$loan_mig_2 !="no loan", "Loan Taken", "No Loan")
+dat$migrant_debt <- as.factor(dat$migrant_debt)
+summary(dat$migrant_debt)
 #Annual income from Agriculture Sources
 dat <- dat %>%
   rowwise() %>%
@@ -205,8 +242,8 @@ summary(dat$Annual_income_Remittance_USD)
 
 attributes(dat)
 
-#sum the annual income for use as regressor
-#THIS CODE DID NOT WORK
+#sum the annual income for use as regressor?
+#THIS CODE DID NOT WORK v
 # dat$total_income <- dat %>% mutate([485]:[496], na.rm=TRUE)
 # dat$annual_income <- rowSums(dat, na.rm = TRUE, as.numeric(c("annual_income_poultry", "annual_income_fish", "annual_income_vege",
                       # "annual_income_assests", "annual_income_wage", "annual_income_wage_non_agri",
@@ -217,6 +254,8 @@ attributes(dat)
 summary(dat$total_savings, na.rm = TRUE)
 median(dat$total_savings, na.rm = TRUE)
 boxplot(dat$total_savings,  na.rm = TRUE)
+
+#remittances priorities: if loan or food or
 #Coding Food Shortages in Any Month as variable
 dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_jios == "food shortage" |
@@ -236,8 +275,13 @@ summary(dat$food_short)
 #Of the hungry, only 51/236 (or 21.6%) migrated
 ofhungry_movers <- dat %>%
   filter(food_short == "Food Shortage") %>%
-  select(migration)
+  select(migration == "1")
 summary(ofhungry_movers)
+
+ofhungry_permmove <- dat %>%
+  filter(food_short == "Food Shortage") %>%
+  select(nature_migrants1 == "permanent labor")
+summary(ofhungry_permmove)
 
 #Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
 ofmovers_hungry <- dat %>%
@@ -260,6 +304,11 @@ dat$food_debt <- ifelse(dat$borrow_food == "Yes" |
 dat$food_debt <- as.factor(dat$food_debt)
 summary(dat$food_restriction)
 summary(dat$food_debt)
+
+#calculating rice (kg) per capita
+head(dat$quantity_rice)
+dat$rice_per_capita <- dat$quantity_rice/dat$hh_size
+hist(dat$rice_per_capita)
 #Food Consumption Score according to World Food Programme
 
 #FCS thresholds: 0-21 = Poor, 21.5-35 = Borderline, > 35 = Healthy
@@ -291,11 +340,11 @@ summary(dat$food_debt)
 dat$num_adults <- dat$num_adult_male + dat$num_adult_female
 
 dat$kids <- dat$num_child_male + dat$num_child_male
-hist(dat$working_child_male)
-class(dat$workingkids)
+hist(dat$kids)
+
 dat$workingkids <- ifelse(dat$working_child_female > 0 |
                             dat$working_child_male > 0, 1, 0)
-
+class(dat$workingkids)
 dat$hh_size <- dat$num_adults + dat$kids
 mean(dat$hh_size, na.rm = TRUE)
 hist(dat$hh_size)
@@ -310,9 +359,9 @@ hist(dat$dependents)
 
 #Models
 
-reg_var <- dat %>%
-  dplyr::select(age_hh, farm_types, total_plot_area_ha, migrant_edu_code, Annual_income_Agriculture_combined_USD,
-         Annual_income_Non_Agriculture_combined_USD, food_short)
+# reg_var <- dat %>%
+  # dplyr::select(age_hh, farm_types, total_plot_area_ha, migrant_edu_code, Annual_income_Agriculture_combined_USD,
+  #        Annual_income_Non_Agriculture_combined_USD, food_short)
 
 # Base model - demographics etc - significant or not, have to be there
 #basic: owned farm, farm size, religion, household size, number of adult men, household head education,
@@ -322,7 +371,6 @@ base_reg <- formula("migration ~ farm_types + total_plot_area_ha + age_hh + num_
 basemod <- glm(base_reg, family = binomial(link="probit"), data=dat)
 
 summary(basemod)
-dat$migrant_edu_code
 
 #basemod significance: 100% religion_hh (Muslim), 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms
 #why is Islam influencing migration? Minority status?
@@ -334,23 +382,32 @@ clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + fr
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
 summary(freqmod)
 
-# test 1b - crop loss due to environmental cause in the past 5 years - lost production was not significant unless gated to >50%
-clim_loss1 <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
+# test 1b - crop loss due to environmental cause in the past 5 years - lost production was not significant,
+# although not possessing lowland in plot 1 or plot 2 was 95% significant
+clim_loss1 <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect + low_land +
+                      bad_gates + bad_canals + bad_embankments")
 lossmod1 <- glm(clim_loss1, family = binomial(link="probit"), data=dat)
-summary(lossmod1)
-summary(dat$loss_prod_insect)
-hist(dat$loss_prod_flood)
+summ(lossmod1)
+
 
 #creating binary thresholds for above mean production loss
 dat$flood_bin <- ifelse(dat$loss_prod_flood >= 0.3175, 1, 0)
 dat$drought_bin <- ifelse(dat$loss_prod_flood >= 0.1578, 1, 0)
 dat$salinity_bin <- ifelse(dat$loss_prod_flood >= 0.0799, 1, 0)
 dat$insect_bin <- ifelse(dat$loss_prod_flood >= 0.2116, 1, 0)
+
 clim_loss2 <- formula("migration ~ flood_bin + drought_bin + salinity_bin + insect_bin")
 lossmod2 <- glm(clim_loss2, family = binomial(link="probit"), data=dat)
 summary(lossmod2)
 
+# Specific test #2 - income and debt load on migration - income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
+colnames(dat)
 
-# Specific test #2 - income and debt load on migration
+money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_income_Non_Agriculture_combined_USD +
+                 farm_types + kids + num_rooms + income_rent + income_caste_occu +
+                 income_fish + income_poultry + income_bussiness + income_transport + total_plot_area_ha")
+moneymod <- glm(money, family = binomial(link="probit"), data=dat)
+summary(moneymod)
 
 # Specific test #3 - food insecurity - food shortage, food restriction, food debt, food consumption score class
+
