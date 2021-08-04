@@ -12,9 +12,9 @@ pacman::p_load(ggplot2,
                gvlma,
                dplyr)
 
-# mfx <-read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
-# View(mfx)
-# library(dplyr)
+mig <-read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
+View(mig)
+
 ###############################################################################
 
 #Load original polder data file
@@ -24,16 +24,11 @@ dat <- data.table(dat)
 View(dat)
 
 #It would be good to isolate explanatory data descriptors to generate a summary table.
-dat$religion_hh
-
-ggplot(data = dat) +
-  geom_bar(mapping = aes(x = religion_hh))
-dat %>%
-  count(religion_hh)
+toplines <- dat %>%
+  select(religion_hh, gender_hh, age_hh, POL_NAME)
 
 
-# sel_var <- dat %>%
-#   select(POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
+     # POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
 #          papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
 #          crop_submerged_plot_1, crop_submerged_plot_2, total_land, #Sec2
 #          freq_flood, freq_drought, freq_salinity, freq_insects, loss_prod_flood, #Sec4
@@ -80,6 +75,7 @@ dat %>%
 # dat$place_mig_1 <- as.factor(dat$place_mig_1)
 
 dat$age_hh=as.numeric(dat$age_hh)
+dat$religion_hh=as.factor(dat$religion_hh)
 dat$papers_plot=as.numeric(dat$papers_plot)
 dat$total_land=as.integer(dat$total_land)
 dat$freq_flood=as.numeric(dat$freq_flood)
@@ -99,22 +95,21 @@ dat$num_male_nonagri_lobor=as.numeric(dat$num_male_nonagri_lobor)
 dat$num_female_nonagri_lobor=as.numeric(dat$num_female_nonagri_lobor)
 dat$month_stock=as.numeric(dat$month_stock)
 
-#attributes(dat)
-#str(dat)
-
 # Our Dependent Variable: At Least One Household Migrant
 dat$migration <- ifelse(dat$num_migrants > 0, 1, 0)
 dat$migration = as.factor(dat$migration)
 
+mig$migration <- dat$migration
+
+#165 households with at least one migrant, 860 with none
 summary(dat$migration)
-ggplot(data = dat) +
-  geom_bar(mapping = aes(x = migration))
+
 
 # Separating permanent vs seasonal labor
 dat$nature_migrants1 <- as.factor(dat$nature_migrants1)
-summary(dat$nature_migrants1)
+summary(dat$nature_migrants1) # perm = 94, seasonal = 71
 dat$nature_migrants2 <- as.factor(dat$nature_migrants2)
-summary(dat$nature_migrants2)
+summary(dat$nature_migrants2) #perm = 17, seasonal = 5
 
 #Coding literacy
 dat$edu_hh_code <- ifelse(dat$edu_hh == "no school", "Illiterate", "Literate")
@@ -123,13 +118,13 @@ dat$edu_hh_code=as.factor(dat$edu_hh_code)
 dat$edu_hh_spouse_code <- ifelse(dat$edu_hh_spouse == "no school", "Illiterate", "Literate")
 dat$edu_hh_spouse_code=as.factor(dat$edu_hh_spouse_code)
 
-summary(dat$edu_hh_code)
-summary(dat$edu_hh_spouse_code)
+summary(dat$edu_hh_code) #Illiterate = 126, Literate = 899
+summary(dat$edu_hh_spouse_code) #Illiterate = 145, literate = 829
 
 dat$both_literate <- ifelse(dat$edu_hh_code == "Literate" &
-                            dat$edu_hh_spouse_code == "Literate", "Educated Parents", "An Illiterate Parent")
+                            dat$edu_hh_spouse_code == "Literate", "Literate Parents", "An Illiterate Parent")
 dat$both_literate  <- as.factor(dat$both_literate)
-summary(dat$both_literate)
+summary(dat$both_literate) #An Illiterate Parent = 208, Both Literate = 773, NA = 44
 
 #papers or no papers for worked agricultural fields
 dat$farm_types <- ifelse(dat$papers_plot > 0, "Have Plot Papers", "No Papers")
@@ -138,7 +133,7 @@ dat$farm_types=as.factor(dat$farm_types)
 #tenancy
 dat$sharecropping <- ifelse(dat$cultivate_without_papers > dat$papers_plot, "Tenant farmer", "Landowner")
 dat$sharecropping=as.factor(dat$sharecropping)
-summary(dat$sharecropping)
+summary(dat$sharecropping) # Landowner = 692, Tenant Farmer = 333
 
 dat <- dat %>%
   dplyr::select(-papers_plot)
@@ -151,7 +146,6 @@ dat <- dat %>%
 
 #Median farm size is 1 acre (.4 ha), mean = .56 ha
 summary(dat$total_plot_area_ha)
-median(dat$total_plot_area_ha)
 ggplot(data = dat, mapping = aes(x = total_plot_area_ha, colour = total_plot_area_ha)) +
   geom_freqpoly(binwidth = 0.1)
 
@@ -172,8 +166,8 @@ dat$plot2_status=as.factor(dat$plot2_status)
 dat <- dat %>%
   select(-status_plot_2)
 
-summary(dat$plot1_status)
-summary(dat$plot2_status)
+summary(dat$plot1_status) # Lease/Shared: 436, Owned: 565, NA:24
+summary(dat$plot2_status) # Lease/Shared: 331, Owned: 479, NA: 24
 
 #Coding for sunk crops and low elevation land:
 dat$crop_sunk <- ifelse(dat$crop_submerged_plot_1 == "yes" |
@@ -187,7 +181,6 @@ dat$low_land <- as.factor(dat$low_land)
 summary(dat$low_land) #242 respondents said that they cropped in lowlying land
 
 #alternate measurement for lowland - percentage
-
 dat$percent_abovesea <- ((dat$high_agri_land + dat$medium_agri_land)/dat$total_land)*100
 summary(dat$percent_abovesea) #55%
 hist(dat$percent_abovesea)
@@ -197,17 +190,29 @@ summary(dat$percent_lowland) #14% is mean lowland percent of total land
 hist(dat$percent_lowland)
 
 #coding poor infrastructure
-dat$bad_canals <- ifelse(dat$condition_canals < 5, "Poor Canal Condition", "OK Canals")
+dat$bad_canals <- ifelse(dat$condition_canals <= 5, "Poor Canal Condition", "OK Canals")
 dat$bad_canals <- as.factor(dat$bad_canals)
-summary(dat$bad_canals)
+summary(dat$bad_canals) # OK Canals - 539, Poor Canal Condition - 485, NA - 1
 
-dat$bad_embankments <- ifelse(dat$condi_embankment <5, "Poor embankment condition", "OK Embankments")
+dat$bad_embankments <- ifelse(dat$condi_embankment <= 5, "Poor seawall condition", "OK seawalls")
 dat$bad_embankments <- as.factor(dat$bad_embankments)
-summary(dat$bad_embankments)
+summary(dat$bad_embankments) # OK Seawalls: 796, Poor Seawalls: 229
 
-dat$bad_gates <- ifelse(dat$cond_gate <5, "Poor sluice gates", "OK sluice gates")
+dat$bad_gates <- ifelse(dat$cond_gate <= 5, "Poor sluice gates", "OK sluice gates")
 dat$bad_gates <- as.factor(dat$bad_gates)
-summary(dat$bad_gates)
+summary(dat$bad_gates) #OK sluices: 712, Poor sluices: 307, NA: 6
+
+#Coding bad water management groups
+
+as.factor(dat$memb_wmg) -> dat$memb_wmg
+summary(dat$memb_wmg) # there are 232 HHs who have a member in a WMG, 792 who do not
+
+dat$bad_transparency <- ifelse(dat$transparency <= 5, 1, 0)
+dat$bad_financial <- ifelse(dat$finantial <= 5, 1, 0)
+dat$bad_participation <- ifelse(dat$participation <= 5, 1, 0)
+dat$bad_rules <- ifelse(dat$rules <= 5, 1, 0)
+dat$bad_gate_operation <- ifelse(dat$gate_operation <= 5, 1, 0)
+dat$maintenance <- ifelse(dat$maintenance <= 5, 1, 0)
 
 # Coding Education as migrant characteristic
 
@@ -239,7 +244,7 @@ dat$migrant_debt <- ifelse(dat$loan_mig_1 != "no loan"|
 dat$migrant_debt <- as.factor(dat$migrant_debt)
 summary(dat$migrant_debt) #Of migrants, 46 loans taken, 17 no loan
 
-#Annual income from Agriculture Sources - Median agri income is $294/yr, Mean is $426/year
+#Annual income from Agriculture Sources -
 
 dat <- dat %>%
   rowwise() %>%
@@ -250,7 +255,7 @@ dat <- dat %>%
   select(-Annual_income_Agriculture_BDT)
 dat$Annual_income_Agriculture_combined_USD=as.integer(dat$Annual_income_Agriculture_combined_USD)
 
-summary(dat$Annual_income_Agriculture_combined_USD)
+summary(dat$Annual_income_Agriculture_combined_USD) #Median = $294/yr, Mean = $426/year
 
 #Annual income from Non-Agriculture Sources - Median = $117/yr, Mean = $352/yr
 dat <- dat %>%
@@ -270,10 +275,15 @@ dat <- dat %>%
 dat$Annual_income_Remittance_USD=as.integer(dat$Annual_income_Remittance_USD)
 summary(dat$Annual_income_Remittance_USD)
 
-#How to compare the wider distribution of remittances against agri/non-agri household income?
+ggplot(data = dat, mapping = aes(x = Annual_income_Remittance_USD, colour = Annual_income_Remittance_USD)) +
+  geom_freqpoly(binwidth = 0.1)
+
+#There's room here for computing x = length of migration and y = annual income remittance USD
+
+#How to compare agriculture, non-agriculture, and remittance household income?
 
 #What are the average total savings, and is that a potential regressor? - Median is 300 (bdt?), Mean is 634 bdt
-summary(dat$total_savings, na.rm = TRUE)
+summary(dat$total_savings) #Median is 300, Mean is 634, Max is 12,000
 
 
 #remittances priorities: if loan or food
@@ -296,7 +306,13 @@ dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
 dat$food_short=as.factor(dat$food_short)
 summary(dat$food_short)
 
+nofood <- formula("migration ~ food_short")
+nofoodmod <- glm(nofood, family = binomial(link="probit"), data=dat)
+summary(nofoodmod)
+
+
 #Of the hungry, only 51/236 (or 21.6%) migrated
+
 ofhungry_movers <- dat %>%
   filter(food_short == "Food Shortage") %>%
   select(migration == "1")
@@ -308,6 +324,7 @@ ofhungry_permmove <- dat %>%
 summary(ofhungry_permmove)
 
 #Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
+#WARNING: dplyr is not working properly in the filter and select functions
 ofmovers_hungry <- dat %>%
   filter(migration == 1) %>%
   select(food_short)
@@ -345,7 +362,7 @@ summary(dat$food_restriction)
 summary(dat$food_debt)
 
 #calculating rice (kg) per capita
-head(dat$quantity_rice)
+
 dat$rice_per_capita <- (dat$quantity_rice)/dat$hh_size
 hist(dat$rice_per_capita)
 summary(dat$rice_per_capita) #Median & Mean is 3kg/wk
@@ -435,13 +452,14 @@ hist(dat$retired)
 # Base model - demographics etc - significant or not, have to be there
 colnames(dat)
 
-base_reg <- formula("migration ~ farm_types + sharecropping + total_plot_area_ha + age_hh + num_male_agri_lobor + working_adult_female + kids")
+base_reg <- formula("migration ~ farm_types + sharecropping + total_plot_area_ha + age_hh +
+                    num_male_agri_lobor + working_adult_female + kids + low_land")
 
 basemod <- glm(base_reg, family = binomial(link="probit"), data=dat)
 
 summary(basemod)
 
-#basemod significance: 100% religion_hh (Muslim), 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms
+#basemod significance: 100% religion_hh (Muslim), 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
 #why is Islam influencing migration? Minority status?
 
 # Specific test #1a - frequency of environmental stress in past 5 years - both flood (100%) and insects (90%) were significantly frequent,
@@ -453,23 +471,23 @@ summary(freqmod)
 
 # test 1b - crop loss due to environmental cause in the past 5 years - lost production was not significant,
 # although not possessing lowland in plot 1 or plot 2 was 95% significant
-clim_loss1 <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect + low_land +
-                      bad_gates + bad_canals + bad_embankments")
-lossmod1 <- glm(clim_loss1, family = binomial(link="probit"), data=dat)
-summary(lossmod1)
+
+clim_loss <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
+lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
+summary(lossmod)
 
 
-#creating binary thresholds for above mean production loss - these saw no correlation
-dat$flood_bin <- ifelse(dat$loss_prod_flood >= 0.3175, 1, 0)
-dat$drought_bin <- ifelse(dat$loss_prod_flood >= 0.1578, 1, 0)
-dat$salinity_bin <- ifelse(dat$loss_prod_flood >= 0.0799, 1, 0)
-dat$insect_bin <- ifelse(dat$loss_prod_flood >= 0.2116, 1, 0)
+#Test 2 - poor infrastructure and water management - Poor Canal Condition is 95% predictive for migration,
+# poor sluice gates is 90% predictive, and Having Member of a Water Management Group is 95% predictive
 
-clim_loss2 <- formula("migration ~ flood_bin + drought_bin + salinity_bin + insect_bin")
-lossmod2 <- glm(clim_loss2, family = binomial(link="probit"), data=dat)
-summary(lossmod2)
+bad_infra <- formula("migration ~ bad_transparency + bad_financial + bad_participation +
+                     bad_rules + bad_gate_operation + maintenance + bad_canals +
+                     bad_embankments + bad_gates + memb_wmg")
+bad_infra_mod <- glm(bad_infra, family = binomial(link="probit"), data=dat)
+summary(bad_infra_mod)
 
-# Specific test #2 - income and debt load on migration - income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
+# Specific test #2 - income and debt load on migration -
+# income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
 
 money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_income_Non_Agriculture_combined_USD +
                  farm_types + kids + num_rooms + income_rent + income_caste_occu +
@@ -479,7 +497,7 @@ summary(moneymod)
 
 
 # Specific test #3 - food insecurity - food shortage, food restriction, food debt, food consumption score class
-class(dat$food_short)
+# food_short is highly predictive of migration (no food shortage), but breaks this model due to unknown reason
 
 hunger_reg <- formula("migration ~ food_restriction + rice_per_capita + food_debt + FCS")
 hungermod <- glm(hunger_reg, family = binomial(link="probit"), data=dat)
@@ -491,3 +509,28 @@ monga <- formula("migration ~ food_short_boi + food_short_jios + food_short_ash 
                  food_short_poush + food_short_magh + food_short_falgun + food_short_choitro")
 monga_mod <- glm(monga, family = binomial(link="probit"), data=dat)
 summary(monga_mod)
+
+colnames(dat)
+bottom_line <- formula("migration ~ num_male_agri_lobor + age_hh + working_adult_male + num_rooms +
+                       freq_flood + freq_insects + low_land + memb_wmg +
+                       bad_gates + bad_canals + income_bussiness + kids +
+                       Annual_income_Non_Agriculture_combined_USD + food_restriction +
+                       food_short_poush + food_short_magh")
+bottom_line_mod <- glm(bottom_line, family = binomial(link="probit"), data=dat)
+summary(bottom_line_mod)
+summ(bottom_line_mod)
+
+Mod_unused_factors
+
+sel_var <- mig %>%
+  select(adoption_combined, power_tiller, thresing_machine, spray_machine, husking_machine,
+         tredle_pump, solar_panel, battery, sew_machine, hh_size, average_yield_loss_combined,
+         risk_perception_flood_withNA, risk_perception_drought_withNA, risk_perception_salinity_withNA,
+         rice_kg_eaten_7days_kg_per_capita, primary_decision_remi, women_remi)
+
+mig_formula <- formula("migration ~ power_tiller +thresing_machine + spray_machine + husking_machine +
+         tredle_pump + solar_panel + battery + sew_machine + hh_size + average_yield_loss_combined +
+         risk_perception_flood_withNA + risk_perception_drought_withNA + risk_perception_salinity_withNA +
+         rice_kg_eaten_7days_kg_per_capita + month_stock + adoption_combined")
+migmod <- glm(mig_formula, family = binomial(link="probit"), data=mig)
+summary(migmod) #husking_machine yes (99%), tredle_pump yes (99%), sew_machine yes (95%), hh_size (99.9%)
