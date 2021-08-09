@@ -12,16 +12,16 @@ pacman::p_load(ggplot2,
                gvlma,
                dplyr)
 
-mig <-read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
-View(mig)
-
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
+
+#Load preanalyzed excel file (temporary for experiment - remove before publication)
+mig <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/Migration_Factors.csv")
 
 #It would be good to isolate explanatory data descriptors to generate a summary table.
 toplines <- dat %>%
@@ -306,25 +306,19 @@ dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
 dat$food_short=as.factor(dat$food_short)
 summary(dat$food_short)
 
-nofood <- formula("migration ~ food_short")
-nofoodmod <- glm(nofood, family = binomial(link="probit"), data=dat)
-summary(nofoodmod)
-
-
 #Of the hungry, only 51/236 (or 21.6%) migrated
 
 ofhungry_movers <- dat %>%
   filter(food_short == "Food Shortage") %>%
-  select(migration == "1")
+  select(migration)
 summary(ofhungry_movers)
 
 ofhungry_permmove <- dat %>%
   filter(food_short == "Food Shortage") %>%
-  select(nature_migrants1 == "permanent labor")
-summary(ofhungry_permmove)
+  select(nature_migrants1)
+summary(ofhungry_permmove) #Permanent migrants were 17, Seasonal was 34, NAs were 185
 
 #Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
-#WARNING: dplyr is not working properly in the filter and select functions
 ofmovers_hungry <- dat %>%
   filter(migration == 1) %>%
   select(food_short)
@@ -362,7 +356,7 @@ summary(dat$food_restriction)
 summary(dat$food_debt)
 
 #calculating rice (kg) per capita
-
+#you need to run code on line 432 to properly perform this equation
 dat$rice_per_capita <- (dat$quantity_rice)/dat$hh_size
 hist(dat$rice_per_capita)
 summary(dat$rice_per_capita) #Median & Mean is 3kg/wk
@@ -520,7 +514,15 @@ bottom_line_mod <- glm(bottom_line, family = binomial(link="probit"), data=dat)
 summary(bottom_line_mod)
 summ(bottom_line_mod)
 
-Mod_unused_factors
+#throw them all into a bucket and corrplot them
+bucket.csv <- dat %>%
+  select(migration, num_male_agri_lobor, age_hh, working_adult_male, num_rooms,
+                       freq_flood, freq_insects, low_land, memb_wmg,
+                       bad_gates, bad_canals, income_bussiness, kids,
+                       Annual_income_Non_Agriculture_combined_USD, food_restriction,
+                       food_short_poush, food_short_magh)
+
+#Unused_factors below
 
 sel_var <- mig %>%
   select(adoption_combined, power_tiller, thresing_machine, spray_machine, husking_machine,
