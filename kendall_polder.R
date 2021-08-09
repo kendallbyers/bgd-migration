@@ -12,6 +12,7 @@ pacman::p_load(ggplot2,
                gvlma,
                dplyr)
 
+# Temporarily include preprocessed factors for comparison (experiments)
 mig <-read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
 View(mig)
 
@@ -22,11 +23,6 @@ dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cl
 
 dat <- data.table(dat)
 View(dat)
-
-#It would be good to isolate explanatory data descriptors to generate a summary table.
-toplines <- dat %>%
-  select(religion_hh, gender_hh, age_hh, POL_NAME)
-
 
      # POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
 #          papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
@@ -101,9 +97,40 @@ dat$migration = as.factor(dat$migration)
 
 mig$migration <- dat$migration
 
+
+#It would be good to isolate explanatory data descriptors to generate a summary table.
+
+dat$POL_NAME <- as.factor(dat$POL_NAME)
+dat$VILLAGE_NAME <- as.factor(dat$VILLAGE_NAME)
+dat$gender_hh <- as.factor(dat$gender_hh)
+
+toplines <- dat %>%
+  select(POL_NAME, VILLAGE_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, farm_types, migration)
+toplines <- as.data.frame(toplines)
+
+stargazer(ftable(toplines$POL_NAME, toplines$VILLAGE_NAME, toplines$religion_hh,
+                 toplines$gender_hh, toplines$age_hh, toplines$edu_hh_code,
+                 toplines$farm_types, toplines$migration),
+          type="html",
+          title = "Fig. 1: Basic Demographics of Study Area",
+          out = "bgd-migration/output/toplines_Aug08_2021_1400.htm")
+
+str(toplines)
+sample(toplines)
+
+skim(toplines)
+
+stargazer(toplines, type = "text")
+
+          # title = "Fig. 1: Basic Demographics of Study Area",
+          # summary = TRUE,
+          # rownames = TRUE,
+          # flip = TRUE,
+          # type = "text",
+          # out = "bgd-migration/output/toplines_Aug08_2021_noon.txt")
+
 #165 households with at least one migrant, 860 with none
 summary(dat$migration)
-
 
 # Separating permanent vs seasonal labor
 dat$nature_migrants1 <- as.factor(dat$nature_migrants1)
@@ -520,7 +547,19 @@ bottom_line_mod <- glm(bottom_line, family = binomial(link="probit"), data=dat)
 summary(bottom_line_mod)
 summ(bottom_line_mod)
 
-Mod_unused_factors
+#Change these to reflect bottom lines, but this is your basic model
+# stargazer(bottom_line_mod,
+#           title = "Fig. 1: Basic Demographics of Study Area",
+#           # dep.var.caption = "Migration Decision by Resident, 1 = Yes, 0 = No",
+#           covariate.labels = c("Polder Number", "Village Name", "Household Religion",
+#                                "Head of Household's Gender", "Head of Household's Age",
+#                                "Head of Household's Literacy", "Spouse of Household's Literacy",
+#                                "Has Papers for their Farm", "Migration Decision by Resident, 1 = Yes, 0 = No"),
+#           notes.label = "Significance Levels",
+#           type = "html",
+#           out = "bgd-migration/output/bottomlineAug08_2021_noon.htm")
+
+#Factors from "Mig"
 
 sel_var <- mig %>%
   select(adoption_combined, power_tiller, thresing_machine, spray_machine, husking_machine,
