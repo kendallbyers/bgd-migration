@@ -10,7 +10,8 @@ pacman::p_load(ggplot2,
                mfx,
                margins,
                gvlma,
-               dplyr)
+               dplyr,
+               summarytools)
 
 ###############################################################################
 
@@ -21,58 +22,9 @@ dat <- data.table(dat)
 View(dat)
 
 #Load preanalyzed excel file (temporary for experiment - remove before publication)
+
 mig <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/Migration_Factors.csv")
-
-#It would be good to isolate explanatory data descriptors to generate a summary table.
-toplines <- dat %>%
-  select(religion_hh, gender_hh, age_hh, POL_NAME)
-
-
-     # POL_NAME, gender_hh, age_hh, religion_hh, edu_hh, #Sec1
-#          papers_plot, area_plot_1, area_plot_2, status_plot_1, status_plot_2, #Sec2
-#          crop_submerged_plot_1, crop_submerged_plot_2, total_land, #Sec2
-#          freq_flood, freq_drought, freq_salinity, freq_insects, loss_prod_flood, #Sec4
-#          loss_prod_drought, loss_prod_salinity, loss_prod_insect, #Sec4
-#          memb_wmg, # Sec5
-#          num_migrants, nature_migrants1, gender_1, age_1, edu_1, place_mig_1, #Sec6
-#          name_place_1, mig_job_1, loan_mig_1, remitences, women_involve_increase,#Sec6
-#          agi_group, water_use_group, credit_group, lg_group, womens_group, #Sec7
-#          development_gp, #Sec7
-#          num_male_agri_lobor, wage_male_lobor, num_female_agri_lobor, #Sec8
-#          wage_female_agri_lobor, num_male_nonagri_lobor, wage_male_nonagri_lobor, #Sec8
-#          num_female_nonagri_lobor, wage_female_nonagri_lobor, income_poultry, #Sec8
-#          income_fish, income_vege, income_assests, income_wage, #Sec8
-#          income_wage_nonagri, salary_pension, income_remi, income_rent, #Sec8
-#          income_bussiness, income_transport, income_caste_occu, income_other, #Sec8
-#          annual_income_poultry, annual_income_fish, annual_income_vege, #Sec8
-#          annual_income_assests, annual_income_wage, annual_income_wage_non_agri, #Sec8
-#          annual_salary_pension, annual_income_remi, annual_income_ren, #Sec8
-#          annual_income_bussi, annual_income_transport, annual_income_caste_occu, #Sec8
-#          annual_income_others, #Sec8
-#          food_short_boi, food_short_jios, food_short_ash, food_short_sra, #Sec9
-#          food_short_bhadro, food_short_ashshin, food_short_kartik, food_short_ograon, #Sec9
-#          food_short_poush, food_short_magh, food_short_falgun, food_short_choitro, #Sec9
-#          reduce_quantity, reduce_time_eat, without_food, borrow_food, loan_food, #Sec9
-#          loan_micro, exchange_things, morgate_land, morgate_non_land, #Sec9
-#          rice, wheat, maize, potato, vegetable, fruits, pulses, egges, #Sec9
-#          meat, meat_chi, fish, oils, dairy, quantity_rice, #Sec9
-#          num_adult_male, num_adult_female, num_child_male, num_child_female, #Sec10
-#          literate_male, literate_female, literate_child_male, literate_child_female, #Sec10
-#          working_adult_male, working_adult_female, working_child_male, working_child_female, #Sec10
-#          latrine, elctricity, month_stock, paddy_boi, paddy_jois, paddy_asharh, #Sec10
-#          paddy_srabon, paddy_bhadro, paddy_ashshin, paddy_katrik, paddy_ogra, #Sec10
-#          paddy_poush, paddy_magh, paddy_falgun, paddy_choitro, income_1, #Sec10
-#          khat, chair, table, sofa, almira, wooden_box, radio, television, sew_machine, #Sec11
-#          stove, mobile, bicycle, rickshaw, motorcycle, plough, power_tiller, #Sec11
-#          thresing_machine, spray_machine, husking_machine, tredle_pump, #Sec11
-#          manual_pump, solar_panel, battery, bank_acc, #Sec11
-#          bullock, cow, colf, buffalo, goat, sheep, pigeon, chiken, duck, goose) #Sec11
-
-# sel_var <- data.table(dat)
-# View(dat)
-# sel_var %>% count(place_mig_1)
-#
-# dat$place_mig_1 <- as.factor(dat$place_mig_1)
+View(mig)
 
 dat$age_hh=as.numeric(dat$age_hh)
 dat$religion_hh=as.factor(dat$religion_hh)
@@ -99,11 +51,42 @@ dat$month_stock=as.numeric(dat$month_stock)
 dat$migration <- ifelse(dat$num_migrants > 0, 1, 0)
 dat$migration = as.factor(dat$migration)
 
+#to temporary file 'mig'
 mig$migration <- dat$migration
+
+
+#It would be good to isolate explanatory data descriptors to generate a summary table.
+
+dat$POL_NAME <- as.factor(dat$POL_NAME)
+dat$VILLAGE_NAME <- as.factor(dat$VILLAGE_NAME)
+dat$gender_hh <- as.factor(dat$gender_hh)
+
+#remember to code edu_hh_code below before running this
+toplines <- dat %>%
+  select(POL_NAME, VILLAGE_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, farm_types, migration)
+toplines <- as.data.frame(toplines)
+
+top_report <- dfSummary(toplines, plain.ascii = TRUE, out = "C:/Users/kenda/Documents/R/bgd-migration/output/toplines_Aug10_2021_1900.txt")
+
+print(top_report, file = "C:/Users/kenda/Documents/R/bgd-migration/output/toplines_Aug10_2021_1911.txt")
+
+#Stargazer only reads the numeric file, not the categorical ones. Need help to fix this.
+# stargazer(toplines,
+#           type="text",
+#           title = "Fig. 1: Basic Demographics of Study Area",
+#           out = "C:/Users/kenda/Documents/R/bgd-migration/output/toplines_Aug10_2021_1730.txt")
+
+# stargazer(toplines, type = "text")
+
+          # title = "Fig. 1: Basic Demographics of Study Area",
+          # summary = TRUE,
+          # rownames = TRUE,
+          # flip = TRUE,
+          # type = "text",
+          # out = "bgd-migration/output/toplines_Aug08_2021_noon.txt")
 
 #165 households with at least one migrant, 860 with none
 summary(dat$migration)
-
 
 # Separating permanent vs seasonal labor
 dat$nature_migrants1 <- as.factor(dat$nature_migrants1)
@@ -275,8 +258,8 @@ dat <- dat %>%
 dat$Annual_income_Remittance_USD=as.integer(dat$Annual_income_Remittance_USD)
 summary(dat$Annual_income_Remittance_USD)
 
-ggplot(data = dat, mapping = aes(x = Annual_income_Remittance_USD, colour = Annual_income_Remittance_USD)) +
-  geom_freqpoly(binwidth = 0.1)
+# ggplot(data = dat, mapping = aes(x = Annual_income_Remittance_USD, colour = Annual_income_Remittance_USD)) +
+#   geom_freqpoly(binwidth = 0.1)
 
 #There's room here for computing x = length of migration and y = annual income remittance USD
 
@@ -306,6 +289,14 @@ dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
 dat$food_short=as.factor(dat$food_short)
 summary(dat$food_short)
 
+#food_short is heavily colinear with several other factors, so it doesn't like to be run in regressions with other factors.
+#Here is the food_short generalized linear model, showing significance for migration
+
+# nofood <- formula("migration ~ food_short")
+# nofoodmod <- glm(nofood, family = binomial(link="probit"), data=dat)
+# summary(nofoodmod) In short, "No Food Shortage" is highly correlated with migration
+
+
 #Of the hungry, only 51/236 (or 21.6%) migrated
 
 ofhungry_movers <- dat %>%
@@ -319,6 +310,7 @@ ofhungry_permmove <- dat %>%
 summary(ofhungry_permmove) #Permanent migrants were 17, Seasonal was 34, NAs were 185
 
 #Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
+
 ofmovers_hungry <- dat %>%
   filter(migration == 1) %>%
   select(food_short)
@@ -356,7 +348,8 @@ summary(dat$food_restriction)
 summary(dat$food_debt)
 
 #calculating rice (kg) per capita
-#you need to run code on line 432 to properly perform this equation
+#you need to run code on line 473 to properly perform this equation
+
 dat$rice_per_capita <- (dat$quantity_rice)/dat$hh_size
 hist(dat$rice_per_capita)
 summary(dat$rice_per_capita) #Median & Mean is 3kg/wk
@@ -516,13 +509,25 @@ summ(bottom_line_mod)
 
 #throw them all into a bucket and corrplot them
 bucket.csv <- dat %>%
-  select(migration, num_male_agri_lobor, age_hh, working_adult_male, num_rooms,
-                       freq_flood, freq_insects, low_land, memb_wmg,
-                       bad_gates, bad_canals, income_bussiness, kids,
-                       Annual_income_Non_Agriculture_combined_USD, food_restriction,
-                       food_short_poush, food_short_magh)
+select(migration, num_male_agri_lobor, age_hh, working_adult_male, num_rooms,
+       freq_flood, freq_insects, low_land, memb_wmg,
+       bad_gates, bad_canals, income_bussiness, kids,
+       Annual_income_Non_Agriculture_combined_USD, food_restriction,
+       food_short_poush, food_short_magh)
 
-#Unused_factors below
+#Change these to reflect bottom lines, but this is your basic model
+# stargazer(bottom_line_mod,
+#           title = "Fig. 1: Basic Demographics of Study Area",
+#           # dep.var.caption = "Migration Decision by Resident, 1 = Yes, 0 = No",
+#           covariate.labels = c("Polder Number", "Village Name", "Household Religion",
+#                                "Head of Household's Gender", "Head of Household's Age",
+#                                "Head of Household's Literacy", "Spouse of Household's Literacy",
+#                                "Has Papers for their Farm", "Migration Decision by Resident, 1 = Yes, 0 = No"),
+#           notes.label = "Significance Levels",
+#           type = "html",
+#           out = "bgd-migration/output/bottomlineAug08_2021_noon.htm")
+
+#Factors from "Mig"
 
 sel_var <- mig %>%
   select(adoption_combined, power_tiller, thresing_machine, spray_machine, husking_machine,
