@@ -13,17 +13,21 @@ pacman::p_load(ggplot2,
                dplyr,
                summarytools)
 
+#TO DO FOR 8/11 :
+# Output dfsummary data table and paste in Word.
+# Data Description summary for each point - write the significance of such - refer to the Twitter notes in the section
+# AFTERWARDS, start in on corrplot but grouping the bucket + basemod factors, running cor() for correlation matrix, and running correlations + decimals as shown in Youtube
+# Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
 
 #Load preanalyzed excel file (temporary for experiment - remove before publication)
-
-mig <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/Migration_Factors.csv")
+mig <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
 View(mig)
 
 dat$age_hh=as.numeric(dat$age_hh)
@@ -66,9 +70,49 @@ toplines <- dat %>%
   select(POL_NAME, VILLAGE_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, farm_types, migration)
 toplines <- as.data.frame(toplines)
 
-top_report <- dfSummary(toplines, plain.ascii = TRUE, out = "C:/Users/kenda/Documents/R/bgd-migration/output/toplines_Aug10_2021_1900.txt")
+# print(dfSummary(toplines, plain.ascii = FALSE,
+#                 dfSummary.varnumbers = FALSE,
+#                 dfSummary.valid.col = FALSE,
+#                 results = 'asis',
+#                 output = "html"), method = "pander",
+#       file = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/toplines_Aug12_2021_1200.htm")
 
-print(top_report, file = "C:/Users/kenda/Documents/R/bgd-migration/output/toplines_Aug10_2021_1911.txt")
+view(dfSummary(toplines))
+
+# print(dfSummary(toplines,
+#                 method = "pander",
+#                 dfSummary.varnumbers = FALSE,
+#                 dfSummary.valid.col = FALSE,
+#                 output = "html",
+#                 file = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/toplines_Aug12_2021_1245.htm"))
+#
+# st_options(plain.ascii = FALSE,
+#            style = "rmarkdown")
+#
+# dfSummary(toplines, style='grid', plain.ascii = FALSE, graph.col = FALSE)
+#
+# library(knitr)
+# opts_chunk$set(comment = NA, prompt = FALSE, cache = FALSE, results = 'asis')
+# library(summarytools)
+# st_options(plain.ascii = FALSE,          # This is a must in Rmd documents
+#            style = "rmarkdown",          # idem
+#            dfSummary.varnumbers = FALSE, # This keeps results narrow enough
+#            dfSummary.valid.col = FALSE,
+#            dfSummary.na.col = FALSE, #idem
+#            output: html_document)
+#
+# library(summarytools)
+# st_options(
+#   plain.ascii = FALSE,
+#   style = "rmarkdown",
+#   dfSummary.style = "grid",
+#   dfSummary.valid.col = FALSE,
+#   dfSummary.graph.magnif = .52,
+#   tmp.img.dir = "/tmp"
+# )
+#
+# define_keywords(title.dfSummary = "Data Frame Summary in PDF Format")
+# dfSummary(toplines)
 
 #Stargazer only reads the numeric file, not the categorical ones. Need help to fix this.
 # stargazer(toplines,
