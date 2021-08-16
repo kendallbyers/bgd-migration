@@ -1,6 +1,6 @@
 rm(list=ls())
 
-pacman::p_load(ggplot2,
+pacman::p_load(corrplot,
                data.table,
                stargazer,
                systemfit,
@@ -21,13 +21,14 @@ pacman::p_load(ggplot2,
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+as.factor(dat$income_bussiness)
 
 dat <- data.table(dat)
 View(dat)
 
 #Load preanalyzed excel file (temporary for experiment - remove before publication)
-mig <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/Migration_Factors.csv")
+mig <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/Migration_Factors.csv")
 View(mig)
 
 dat$age_hh=as.numeric(dat$age_hh)
@@ -65,7 +66,7 @@ dat$POL_NAME <- as.factor(dat$POL_NAME)
 dat$VILLAGE_NAME <- as.factor(dat$VILLAGE_NAME)
 dat$gender_hh <- as.factor(dat$gender_hh)
 
-#remember to code edu_hh_code below before running this
+#remember to code edu_hh_code below before running this -> line 114ish
 toplines <- dat %>%
   select(POL_NAME, VILLAGE_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, farm_types, migration)
 toplines <- as.data.frame(toplines)
@@ -332,6 +333,7 @@ dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_choitro == "food shortage", "Food Shortage", "No Food Shortage")
 dat$food_short=as.factor(dat$food_short)
 summary(dat$food_short)
+View(dat$food_short_poush)
 
 #food_short is heavily colinear with several other factors, so it doesn't like to be run in regressions with other factors.
 #Here is the food_short generalized linear model, showing significance for migration
@@ -483,29 +485,29 @@ hist(dat$retired)
 # Base model - demographics etc - significant or not, have to be there
 colnames(dat)
 
-base_reg <- formula("migration ~ farm_types + sharecropping + total_plot_area_ha + age_hh +
+base_reg <- formula("migration ~ religion_hh + farm_types + sharecropping + total_plot_area_ha + age_hh +
                     num_male_agri_lobor + working_adult_female + kids + low_land")
 
 basemod <- glm(base_reg, family = binomial(link="probit"), data=dat)
 
 summary(basemod)
 
-#basemod significance: 100% religion_hh (Muslim), 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
+#basemod significance: 90% religion_hh = Islam, 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
 #why is Islam influencing migration? Minority status?
 
 # Specific test #1a - frequency of environmental stress in past 5 years - both flood (100%) and insects (90%) were significantly frequent,
 # while drought and salinity were not
 
-clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + freq_insects")
+clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + freq_insects + low_land")
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
 summary(freqmod)
 
 # test 1b - crop loss due to environmental cause in the past 5 years - lost production was not significant,
 # although not possessing lowland in plot 1 or plot 2 was 95% significant
 
-clim_loss <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
-lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
-summary(lossmod)
+# clim_loss <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
+# lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
+# summary(lossmod)
 
 
 #Test 2 - poor infrastructure and water management - Poor Canal Condition is 95% predictive for migration,
@@ -541,8 +543,7 @@ monga <- formula("migration ~ food_short_boi + food_short_jios + food_short_ash 
 monga_mod <- glm(monga, family = binomial(link="probit"), data=dat)
 summary(monga_mod)
 
-colnames(dat)
-bottom_line <- formula("migration ~ num_male_agri_lobor + age_hh + working_adult_male + num_rooms +
+bottom_line <- formula("migration ~ religion_hh + age_hh + num_male_agri_lobor + working_adult_male + num_rooms +
                        freq_flood + freq_insects + low_land + memb_wmg +
                        bad_gates + bad_canals + income_bussiness + kids +
                        Annual_income_Non_Agriculture_combined_USD + food_restriction +
@@ -552,12 +553,102 @@ summary(bottom_line_mod)
 summ(bottom_line_mod)
 
 #throw them all into a bucket and corrplot them
-bucket.csv <- dat %>%
-select(migration, num_male_agri_lobor, age_hh, working_adult_male, num_rooms,
-       freq_flood, freq_insects, low_land, memb_wmg,
-       bad_gates, bad_canals, income_bussiness, kids,
-       Annual_income_Non_Agriculture_combined_USD, food_restriction,
-       food_short_poush, food_short_magh)
+bucket <- dat %>%
+  select(migration, religion_hh, farm_types, age_hh,
+         num_male_agri_lobor, working_adult_female, working_adult_male,
+         num_rooms, freq_flood, freq_insects, low_land, memb_wmg,
+         bad_gates, bad_canals, income_bussiness, kids,
+         Annual_income_Non_Agriculture_combined_USD, food_restriction,
+         food_short_poush, food_short_magh)
+
+#Correlation matrix must be numeric, and have short names to fit on graph
+bucket$migration <- bucket$migration <- as.integer(dat$migration)
+bucket$religion <- bucket$religion_hh <- as.numeric(dat$religion_hh)
+bucket$age <- bucket$age_hh <- as.numeric(dat$age_hh)
+bucket$agworkmen <- bucket$num_male_agri_lobor <- as.numeric(dat$num_male_agri_lobor)
+bucket$workingwomen <- bucket$working_adult_female <- as.numeric(dat$working_adult_female)
+bucket$workingmen <- bucket$working_adult_male <- as.numeric(dat$working_adult_male)
+bucket$rooms <- bucket$num_rooms <- as.numeric(dat$num_rooms)
+bucket$floods <- bucket$freq_flood <- as.numeric(dat$freq_flood)
+bucket$insects <- bucket$freq_insects <- as.numeric(dat$freq_insects)
+bucket$low_land <- as.numeric(dat$low_land)
+bucket$memb_wmg <- as.numeric(dat$memb_wmg)
+bucket$bad_gates <- bucket$bad_gates <- as.numeric(dat$bad_gates)
+bucket$bad_canals <- bucket$bad_canals <- as.numeric(dat$bad_canals)
+bucket$kids <- as.numeric(dat$kids)
+bucket$NonAgIncome <- bucket$Annual_income_Non_Agriculture_combined_USD <- as.numeric(dat$Annual_income_Non_Agriculture_combined_USD)
+bucket$lessfood <- bucket$food_restriction <- as.numeric(dat$food_restriction)
+bucket$NoLandDeeds <- ifelse(dat$farm_types == "No Papers", 1, 0)
+bucket$trade <- bucket$income_bussiness <- ifelse(dat$income_bussiness == "Yes", 1, 0)
+# bucket$poush <- bucket$food_short_poush <- ifelse(dat$food_short_poush == "food shortage", 1, 0)
+# bucket$magh <- bucket$food_short_magh <- ifelse(dat$food_short_magh == "food shortage", 1, 0)
+bucket$food_short <- ifelse(dat$food_short == "Food Shortage", 1, 0)
+bucket$food_short <- as.integer(bucket$food_short)
+#Remove unabbreviated names
+bucket <- bucket %>%
+  select(-religion_hh,
+         -age_hh,
+         -num_male_agri_lobor,
+         -working_adult_male,
+         -working_adult_female,
+         -num_rooms,
+         -freq_flood,
+         -freq_insects,
+         -Annual_income_Non_Agriculture_combined_USD,
+         -income_bussiness,
+         -food_restriction)
+
+# bucket <- bucket %>%
+#   select(-farm_types,
+#          -flood,
+#          -gates,
+#          -canals,
+#          -NonAgBucks)
+str(bucket)
+#correlation matrix for all significant factors
+mat <- cor(bucket, use = "complete.obs")
+
+corrplot(mat, order = "AOE", method = "color", addCoef.col = "gray")
+
+rm(mat)
+corrplot.mixed(mat, order = "AOE")
+
+# corr_simple <- function(data=bucket, sig = 0.1){
+#   #convert data to numeric in order to run correlations
+#   #convert to factor first to keep the integrity of the data -
+#   #each value will become a number rather than turn into NA
+#   df_cor <- bucket %>% mutate_if(is.character, as.factor)
+#   df_cor <- df_cor %>% mutate_if(is.factor, as.numeric)
+#
+#   #run a correlation and drop the insignificant ones
+#   corr <- cor(df_cor)
+#   #prepare to drop duplicates and correlations of 1
+#   # corr[lower.tri(corr,diag=TRUE)] <- NA
+#   #drop perfect correlations
+#   corr[corr == 1] <- NA
+#
+#   #turn into a 3-column table
+#   corr <- as.data.frame(as.table(corr))
+#   #remove the NA values from above
+#   corr <- na.omit(corr)
+#
+#   #select significant values
+#   corr <- subset(corr, abs(Freq) > sig)
+#   #sort by highest correlation
+#   corr <- corr[order(-abs(corr$Freq)),]
+#
+#   #print table
+#   print(corr)
+#
+#   #turn corr back into matrix in order to plot with corrplot
+#   # mtx_corr <- reshape2::acast(corr, Var1~Var2, value.var="Freq")
+#
+#   #plot correlations visually
+#   # corrplot(mtx_corr, is.corr=FALSE, tl.col="black", na.label=" ")
+# }
+# corr_simple()
+
+corrplot(mtx_corr)
 
 #Change these to reflect bottom lines, but this is your basic model
 # stargazer(bottom_line_mod,
