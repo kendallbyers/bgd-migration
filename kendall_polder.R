@@ -16,7 +16,8 @@ pacman::p_load(corrplot,
 #TO DO FOR 8/11 :
 # Output dfsummary data table and paste in Word.
 # Data Description summary for each point - write the significance of such - refer to the Twitter notes in the section
-# AFTERWARDS, start in on corrplot but grouping the bucket + basemod factors, running cor() for correlation matrix, and running correlations + decimals as shown in Youtube
+# AFTERWARDS, start in on corrplot but grouping the bucket + basemod factors,
+# running cor() for correlation matrix, and running correlations + decimals as shown in Youtube
 # Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
 
@@ -598,20 +599,24 @@ bucket <- bucket %>%
          -income_bussiness,
          -food_restriction)
 
-# bucket <- bucket %>%
-#   select(-farm_types,
-#          -flood,
-#          -gates,
-#          -canals,
-#          -NonAgBucks)
-str(bucket)
 #correlation matrix for all significant factors
 mat <- cor(bucket, use = "complete.obs")
 
-corrplot(mat, order = "AOE", method = "color", addCoef.col = "gray")
+#names of corrplot
+r = rbind(c("Bad Floodgates", "Food Shortage in Magh", "Number of Males working in Agriculture",
+            "Member of Water Management Group", "Women Working", "Bad Canals",
+            "Seasonal Food Restriction", "Owns Farm", "Has Trade Income", "Non-Ag Income",
+            "Lowland", "Religion", "Number of Children", "Number of Rooms", "Men Working", "Insect Atk Frequency",
+            "Food Shortage in Poush", "House Head's Age", "Flood Frequency", "Migrant"))
+corrplot(mat, order = "AOE", method = "number", type = "lower") %>%
+         # method = "color" addCoef.col = "gray")
+  corrRect(nameMat = r)
 
-rm(mat)
-corrplot.mixed(mat, order = "AOE")
+# use namesMat parameter EXAMPLE
+# r = rbind(c('eggs', 'catsize', 'airborne', 'milk'),
+#           c('catsize', 'eggs', 'milk', 'airborne'))
+# corrplot(Z, order = 'hclust') %>% corrRect(namesMat = r)
+
 
 # corr_simple <- function(data=bucket, sig = 0.1){
 #   #convert data to numeric in order to run correlations
