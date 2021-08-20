@@ -11,25 +11,24 @@ pacman::p_load(corrplot,
                margins,
                gvlma,
                dplyr,
-               summarytools)
+               summarytools,
+               gtsummary)
 
-#TO DO FOR 8/11 :
-# Output dfsummary data table and paste in Word.
-# Data Description summary for each point - write the significance of such - refer to the Twitter notes in the section
-# AFTERWARDS, start in on corrplot but grouping the bucket + basemod factors,
-# running cor() for correlation matrix, and running correlations + decimals as shown in Youtube
+#TO DO FOR 8/20 :
+#Re-order series of models (basemod + several factors at a time) and run on Stargazer
+#
+
 # Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
-as.factor(dat$income_bussiness)
+dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
 
 #Load preanalyzed excel file (temporary for experiment - remove before publication)
-mig <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/Migration_Factors.csv")
+# mig <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
 View(mig)
 
 dat$age_hh=as.numeric(dat$age_hh)
@@ -58,78 +57,7 @@ dat$migration <- ifelse(dat$num_migrants > 0, 1, 0)
 dat$migration = as.factor(dat$migration)
 
 #to temporary file 'mig'
-mig$migration <- dat$migration
-
-
-#It would be good to isolate explanatory data descriptors to generate a summary table.
-
-dat$POL_NAME <- as.factor(dat$POL_NAME)
-dat$VILLAGE_NAME <- as.factor(dat$VILLAGE_NAME)
-dat$gender_hh <- as.factor(dat$gender_hh)
-
-#remember to code edu_hh_code below before running this -> line 114ish
-toplines <- dat %>%
-  select(POL_NAME, VILLAGE_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, farm_types, migration)
-toplines <- as.data.frame(toplines)
-
-# print(dfSummary(toplines, plain.ascii = FALSE,
-#                 dfSummary.varnumbers = FALSE,
-#                 dfSummary.valid.col = FALSE,
-#                 results = 'asis',
-#                 output = "html"), method = "pander",
-#       file = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/toplines_Aug12_2021_1200.htm")
-
-view(dfSummary(toplines))
-
-# print(dfSummary(toplines,
-#                 method = "pander",
-#                 dfSummary.varnumbers = FALSE,
-#                 dfSummary.valid.col = FALSE,
-#                 output = "html",
-#                 file = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/toplines_Aug12_2021_1245.htm"))
-#
-# st_options(plain.ascii = FALSE,
-#            style = "rmarkdown")
-#
-# dfSummary(toplines, style='grid', plain.ascii = FALSE, graph.col = FALSE)
-#
-# library(knitr)
-# opts_chunk$set(comment = NA, prompt = FALSE, cache = FALSE, results = 'asis')
-# library(summarytools)
-# st_options(plain.ascii = FALSE,          # This is a must in Rmd documents
-#            style = "rmarkdown",          # idem
-#            dfSummary.varnumbers = FALSE, # This keeps results narrow enough
-#            dfSummary.valid.col = FALSE,
-#            dfSummary.na.col = FALSE, #idem
-#            output: html_document)
-#
-# library(summarytools)
-# st_options(
-#   plain.ascii = FALSE,
-#   style = "rmarkdown",
-#   dfSummary.style = "grid",
-#   dfSummary.valid.col = FALSE,
-#   dfSummary.graph.magnif = .52,
-#   tmp.img.dir = "/tmp"
-# )
-#
-# define_keywords(title.dfSummary = "Data Frame Summary in PDF Format")
-# dfSummary(toplines)
-
-#Stargazer only reads the numeric file, not the categorical ones. Need help to fix this.
-# stargazer(toplines,
-#           type="text",
-#           title = "Fig. 1: Basic Demographics of Study Area",
-#           out = "C:/Users/kenda/Documents/R/bgd-migration/output/toplines_Aug10_2021_1730.txt")
-
-# stargazer(toplines, type = "text")
-
-          # title = "Fig. 1: Basic Demographics of Study Area",
-          # summary = TRUE,
-          # rownames = TRUE,
-          # flip = TRUE,
-          # type = "text",
-          # out = "bgd-migration/output/toplines_Aug08_2021_noon.txt")
+# mig$migration <- dat$migration
 
 #165 households with at least one migrant, 860 with none
 summary(dat$migration)
@@ -175,7 +103,7 @@ dat <- dat %>%
 
 #Median farm size is 1 acre (.4 ha), mean = .56 ha
 summary(dat$total_plot_area_ha)
-ggplot(data = dat, mapping = aes(x = total_plot_area_ha, colour = total_plot_area_ha)) +
+# ggplot(data = dat, mapping = aes(x = total_plot_area_ha, colour = total_plot_area_ha)) +
   geom_freqpoly(binwidth = 0.1)
 
 dat <- dat %>%
@@ -232,7 +160,6 @@ dat$bad_gates <- as.factor(dat$bad_gates)
 summary(dat$bad_gates) #OK sluices: 712, Poor sluices: 307, NA: 6
 
 #Coding bad water management groups
-
 as.factor(dat$memb_wmg) -> dat$memb_wmg
 summary(dat$memb_wmg) # there are 232 HHs who have a member in a WMG, 792 who do not
 
@@ -334,7 +261,7 @@ dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_choitro == "food shortage", "Food Shortage", "No Food Shortage")
 dat$food_short=as.factor(dat$food_short)
 summary(dat$food_short)
-View(dat$food_short_poush)
+View(dat$food_short)
 
 #food_short is heavily colinear with several other factors, so it doesn't like to be run in regressions with other factors.
 #Here is the food_short generalized linear model, showing significance for migration
@@ -393,13 +320,6 @@ summary(dat$food_restriction)
 
 #211 took on debt for food, 17 did not - 797 NAs
 summary(dat$food_debt)
-
-#calculating rice (kg) per capita
-#you need to run code on line 473 to properly perform this equation
-
-dat$rice_per_capita <- (dat$quantity_rice)/dat$hh_size
-hist(dat$rice_per_capita)
-summary(dat$rice_per_capita) #Median & Mean is 3kg/wk
 
 #Food Consumption Score according to World Food Programme
 
@@ -474,44 +394,81 @@ mean(dat$hh_size, na.rm = TRUE)
 hist(dat$hh_size)
 summary(dat$hh_size) #mean HH size is 5 people, median is 4
 
-#what about dependent adults? Does increased dependents further increase migration?
-dat$retired <- (dat$num_adults - (dat$working_adult_female + dat$working_adult_male))
-dat$retired <- dat$retired + dat$kids - dat$workingkids
-hist(dat$retired)
+#calculating rice (kg) per capita
 
-# Compute Wealth Index from Sec 11 here:
+dat$rice_per_capita <- (dat$quantity_rice)/dat$hh_size
+hist(dat$rice_per_capita)
+summary(dat$rice_per_capita) #Median & Mean is 3kg/wk
+
+#what about dependent adults? Does increased dependents further increase migration?
+dat$indigent <- (dat$num_adults - (dat$working_adult_female + dat$working_adult_male))
+dat$indigent <- dat$indigent + dat$kids - dat$workingkids
+hist(dat$indigent)
+
+# Loose ends before running model regressions
+dat$income_bussiness <- as.factor(dat$income_bussiness)
+
+#Isolate explanatory data descriptors to generate a summary table:
+
+dat$POL_NAME <- as.factor(dat$POL_NAME)
+dat$VILLAGE_NAME <- as.factor(dat$VILLAGE_NAME)
+dat$gender_hh <- as.factor(dat$gender_hh)
+
+toplines <- dat %>%
+  select(POL_NAME, VILLAGE_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, farm_types, migration)
+toplines <- as.data.frame(toplines)
+
+view(dfSummary(toplines))
 
 #Models
 
 # Base model - demographics etc - significant or not, have to be there
 colnames(dat)
 
-base_reg <- formula("migration ~ religion_hh + farm_types + sharecropping + total_plot_area_ha + age_hh +
-                    num_male_agri_lobor + working_adult_female + kids + low_land")
+base<- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
+                    working_adult_male + hh_size + low_land")
 
-basemod <- glm(base_reg, family = binomial(link="probit"), data=dat)
+mod1 <- glm(base, family = binomial(link="probit"), data=dat)
 
-summary(basemod)
+summary(mod1)
 
-#basemod significance: 90% religion_hh = Islam, 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
+#basemod significance: 90% religion_hh = Islam,
+# 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
 #why is Islam influencing migration? Minority status?
 
-# Specific test #1a - frequency of environmental stress in past 5 years - both flood (100%) and insects (90%) were significantly frequent,
-# while drought and salinity were not
+# Specific test #1 - Environmental Stress -
+# both flood frequency in past 5 years (100%), drought (90%) and insect attack (90%) were significant,
+# while production losses were insignificant as well as sunk crops
 
-clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + freq_insects + low_land")
+colnames(dat)
+summary(dat$loss_prod_insect)
+
+hist(dat$freq_insects)
+
+clim_freq <- formula("migration ~ freq_flood + loss_prod_flood + freq_drought + loss_prod_drought +
+                      freq_salinity + loss_prod_salinity + freq_insects + loss_prod_insect + crop_sunk")
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
 summary(freqmod)
 
-# test 1b - crop loss due to environmental cause in the past 5 years - lost production was not significant,
-# although not possessing lowland in plot 1 or plot 2 was 95% significant
+baseandclim <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
+                  working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects")
+mod2 <- glm(baseandclim, family = binomial(link="probit"), data=dat)
+summary(mod2)
 
-# clim_loss <- formula("migration ~ loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
-# lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
-# summary(lossmod)
+#corplot on climate pressures: let's see how frequency or loss perception affects migration
+clim <- dat %>%
+  select(migration, freq_flood, loss_prod_flood, freq_drought, loss_prod_drought,
+         freq_salinity, loss_prod_salinity, freq_insects, loss_prod_insect, crop_sunk)
 
+dat$migration <- as.numeric(dat$migration)
+dat$crop_sunk <- as.numeric(dat$crop_sunk)
+str(clim)
 
-#Test 2 - poor infrastructure and water management - Poor Canal Condition is 95% predictive for migration,
+climat <- cor(clim, use = "complete.obs")
+
+corrplot(climat, order = "AOE", method = "number", type = "lower")
+
+#Specific Test 2 - poor infrastructure and water management - Poor Canal Condition is 95% predictive for migration,
 # poor sluice gates is 90% predictive, and Having Member of a Water Management Group is 95% predictive
 
 bad_infra <- formula("migration ~ bad_transparency + bad_financial + bad_participation +
@@ -520,7 +477,14 @@ bad_infra <- formula("migration ~ bad_transparency + bad_financial + bad_partici
 bad_infra_mod <- glm(bad_infra, family = binomial(link="probit"), data=dat)
 summary(bad_infra_mod)
 
-# Specific test #2 - income and debt load on migration -
+basecliminfra <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
+                  working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects +
+                  bad_canals + bad_gates + memb_wmg")
+
+mod3 <- glm(basecliminfra, family = binomial(link="probit"), data=dat)
+summary(mod3)
+
+# Specific test #3 - income and debt load on migration -
 # income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
 
 money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_income_Non_Agriculture_combined_USD +
@@ -529,8 +493,15 @@ money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_in
 moneymod <- glm(money, family = binomial(link="probit"), data=dat)
 summary(moneymod)
 
+basecliminframoney <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
+                  working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects +
+                  bad_canals + bad_gates + memb_wmg + Annual_income_Non_Agriculture_combined_USD +
+                  kids + income_bussiness")
 
-# Specific test #3 - food insecurity - food shortage, food restriction, food debt, food consumption score class
+mod4 <-glm(basecliminframoney, family = binomial(link="probit"), data=dat)
+summary(mod4)
+
+# Specific test #4 - food insecurity - food shortage, food restriction, food debt, food consumption score class
 # food_short is highly predictive of migration (no food shortage), but breaks this model due to unknown reason
 
 hunger_reg <- formula("migration ~ food_restriction + rice_per_capita + food_debt + FCS")
@@ -543,6 +514,19 @@ monga <- formula("migration ~ food_short_boi + food_short_jios + food_short_ash 
                  food_short_poush + food_short_magh + food_short_falgun + food_short_choitro")
 monga_mod <- glm(monga, family = binomial(link="probit"), data=dat)
 summary(monga_mod)
+
+basecliminframoneyhunger <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
+                  working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects +
+                  bad_canals + bad_gates + memb_wmg + Annual_income_Non_Agriculture_combined_USD +
+                  kids + income_bussiness + food_restriction + food_short_poush + food_short_magh")
+
+mod5 <- glm(basecliminframoneyhunger, family = binomial(link="probit"), data=dat)
+summary(mod5)
+
+stargazer(mod1, mod2, mod3, mod4, mod5,
+          type = "html",
+          out = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/allthemarbles_0820_1730.htm")
+
 
 bottom_line <- formula("migration ~ religion_hh + age_hh + num_male_agri_lobor + working_adult_male + num_rooms +
                        freq_flood + freq_insects + low_land + memb_wmg +
