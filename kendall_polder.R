@@ -22,14 +22,14 @@ pacman::p_load(corrplot,
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
 
 #Load preanalyzed excel file (temporary for experiment - remove before publication)
-# mig <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
-View(mig)
+# mig <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+# View(mig)
 
 dat$age_hh=as.numeric(dat$age_hh)
 dat$religion_hh=as.factor(dat$religion_hh)
@@ -246,7 +246,7 @@ summary(dat$total_savings) #Median is 300, Mean is 634, Max is 12,000
 #TO DO: subset analysis using filter and select of migrant's 1st or 2nd priorities (push/pull determination)
 
 
-#Coding Food Shortages in Any Month as variable
+#Coding Food Shortages in Any Month as variable - 236 as "1" for
 dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_jios == "food shortage" |
                                dat$food_short_ash == "food shortage" |
@@ -258,10 +258,9 @@ dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_poush == "food shortage" |
                                dat$food_short_magh == "food shortage" |
                                dat$food_short_falgun == "food shortage" |
-                               dat$food_short_choitro == "food shortage", "Food Shortage", "No Food Shortage")
+                               dat$food_short_choitro == "food shortage", 1, 0)
 dat$food_short=as.factor(dat$food_short)
 summary(dat$food_short)
-View(dat$food_short)
 
 #food_short is heavily colinear with several other factors, so it doesn't like to be run in regressions with other factors.
 #Here is the food_short generalized linear model, showing significance for migration
@@ -273,22 +272,22 @@ View(dat$food_short)
 
 #Of the hungry, only 51/236 (or 21.6%) migrated
 
-ofhungry_movers <- dat %>%
-  filter(food_short == "Food Shortage") %>%
-  select(migration)
-summary(ofhungry_movers)
-
-ofhungry_permmove <- dat %>%
-  filter(food_short == "Food Shortage") %>%
-  select(nature_migrants1)
-summary(ofhungry_permmove) #Permanent migrants were 17, Seasonal was 34, NAs were 185
-
-#Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
-
-ofmovers_hungry <- dat %>%
-  filter(migration == 1) %>%
-  select(food_short)
-summary(ofmovers_hungry)
+# ofhungry_movers <- dat %>%
+#   filter(food_short == "Food Shortage") %>%
+#   select(migration)
+# summary(ofhungry_movers)
+#
+# ofhungry_permmove <- dat %>%
+#   filter(food_short == "Food Shortage") %>%
+#   select(nature_migrants1)
+# summary(ofhungry_permmove) #Permanent migrants were 17, Seasonal was 34, NAs were 185
+#
+# #Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
+#
+# ofmovers_hungry <- dat %>%
+#   filter(migration == 1) %>%
+#   select(food_short)
+# summary(ofmovers_hungry)
 
 # Age, gender of First Migrants and Second Migrants
 summary(dat$age_1) #median is 32, mean is 34
@@ -306,15 +305,17 @@ summary(dat$gender_3) # 2 males, one is 25 and the other is 28
 
 dat$food_restriction <- ifelse(dat$reduce_quantity == "Yes" |
                                       dat$reduce_time_eat == "Yes" |
-                                      dat$without_food == "Yes", "Forced Food Restriction", "No Forced Food Restriction")
+                                      dat$without_food == "Yes", 1, 0)
 dat$food_restriction <- as.factor(dat$food_restriction)
+summary(dat$food_restriction)
 dat$food_debt <- ifelse(dat$borrow_food == "Yes" |
                                dat$loan_food == "Yes" |
                                dat$loan_micro == "Yes" |
                                dat$exchange_things == "Yes" |
                                dat$morgate_land == "Yes" |
-                               dat$morgate_non_land == "Yes", "Food Debt", "No Food Debt")
+                               dat$morgate_non_land == "Yes", 1, 0)
 dat$food_debt <- as.factor(dat$food_debt)
+
 #93 restricted food quantity, number of meals, and went without food. 132 did not. 800 NAs
 summary(dat$food_restriction)
 
@@ -381,7 +382,7 @@ dat$FCS <- FCS$Food_Consumption_Score
 dat$num_adults <- dat$num_adult_male + dat$num_adult_female
 hist(dat$num_adults)
 
-dat$kids <- dat$num_child_male + dat$num_child_male
+dat$kids <- dat$num_child_male + dat$num_child_female
 hist(dat$kids)
 
 dat$workingkids <- ifelse(dat$working_child_female > 0 |
@@ -415,7 +416,7 @@ dat$VILLAGE_NAME <- as.factor(dat$VILLAGE_NAME)
 dat$gender_hh <- as.factor(dat$gender_hh)
 
 toplines <- dat %>%
-  select(POL_NAME, VILLAGE_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, farm_types, migration)
+  select(POL_NAME, religion_hh, gender_hh, age_hh, edu_hh_code, hh_size, farm_types, migration)
 toplines <- as.data.frame(toplines)
 
 view(dfSummary(toplines))
@@ -440,11 +441,6 @@ summary(mod1)
 # both flood frequency in past 5 years (100%), drought (90%) and insect attack (90%) were significant,
 # while production losses were insignificant as well as sunk crops
 
-colnames(dat)
-summary(dat$loss_prod_insect)
-
-hist(dat$freq_insects)
-
 clim_freq <- formula("migration ~ freq_flood + loss_prod_flood + freq_drought + loss_prod_drought +
                       freq_salinity + loss_prod_salinity + freq_insects + loss_prod_insect + crop_sunk")
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
@@ -455,6 +451,26 @@ baseandclim <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_h
 mod2 <- glm(baseandclim, family = binomial(link="probit"), data=dat)
 summary(mod2)
 
+# Which polders had the most migrants? Which ones had the most environmental stresses?
+colnames(dat)
+dat2 <- dat %>% select(POL_NAME, hh_size, migration, freq_drought,
+                       freq_flood, freq_salinity, freq_insects)
+dat2 %>% tbl_summary()
+dat2 %>% tbl_summary(by = POL_NAME,
+                     add_overall(),
+                     statistic = list(all_continuous() ~ "{mean} ({sd})",
+                                      all_categorical() ~ "{n} / {N} ({p}%)"),
+                     digits = all_continuous() ~ 3,
+                     list(freq_drought ~ "Drought Frequency, Out of 5 Years",
+                          freq_flood ~ "Flood Frequency, Out of 5 Years",
+                          freq_salinity ~ "Oversalinity Frequency, Out of 5 Years",
+                          freq_insects ~ "Insect Infestation Frequency, Out of 5 Years"),
+                     missing_text = "(Missing)"
+)
+
+tbl_summary(toplines)
+
+str(toplines)
 #corplot on climate pressures: let's see how frequency or loss perception affects migration
 clim <- dat %>%
   select(migration, freq_flood, loss_prod_flood, freq_drought, loss_prod_drought,
@@ -637,7 +653,7 @@ corrplot(mat, order = "AOE", method = "number", type = "lower") %>%
 # }
 # corr_simple()
 
-corrplot(mtx_corr)
+# corrplot(mtx_corr)
 
 #Change these to reflect bottom lines, but this is your basic model
 # stargazer(bottom_line_mod,
@@ -653,15 +669,22 @@ corrplot(mtx_corr)
 
 #Factors from "Mig"
 
-sel_var <- mig %>%
-  select(adoption_combined, power_tiller, thresing_machine, spray_machine, husking_machine,
-         tredle_pump, solar_panel, battery, sew_machine, hh_size, average_yield_loss_combined,
-         risk_perception_flood_withNA, risk_perception_drought_withNA, risk_perception_salinity_withNA,
-         rice_kg_eaten_7days_kg_per_capita, primary_decision_remi, women_remi)
+# sel_var <- mig %>%
+#   select(adoption_combined, power_tiller, thresing_machine, spray_machine, husking_machine,
+#          tredle_pump, solar_panel, battery, sew_machine, hh_size, average_yield_loss_combined,
+#          risk_perception_flood_withNA, risk_perception_drought_withNA, risk_perception_salinity_withNA,
+#          rice_kg_eaten_7days_kg_per_capita, primary_decision_remi, women_remi)
+#
+# mig_formula <- formula("migration ~ power_tiller +thresing_machine + spray_machine + husking_machine +
+#          tredle_pump + solar_panel + battery + sew_machine + hh_size + average_yield_loss_combined +
+#          risk_perception_flood_withNA + risk_perception_drought_withNA + risk_perception_salinity_withNA +
+#          rice_kg_eaten_7days_kg_per_capita + month_stock + adoption_combined")
+# migmod <- glm(mig_formula, family = binomial(link="probit"), data=mig)
+# summary(migmod) #husking_machine yes (99%), tredle_pump yes (99%), sew_machine yes (95%), hh_size (99.9%)
 
-mig_formula <- formula("migration ~ power_tiller +thresing_machine + spray_machine + husking_machine +
-         tredle_pump + solar_panel + battery + sew_machine + hh_size + average_yield_loss_combined +
-         risk_perception_flood_withNA + risk_perception_drought_withNA + risk_perception_salinity_withNA +
-         rice_kg_eaten_7days_kg_per_capita + month_stock + adoption_combined")
-migmod <- glm(mig_formula, family = binomial(link="probit"), data=mig)
-summary(migmod) #husking_machine yes (99%), tredle_pump yes (99%), sew_machine yes (95%), hh_size (99.9%)
+# Learning tbl_summary() and gtsummary()
+head(trial)
+
+trial2 <- trial %>% select(trt,age,grade)
+trial2 %>% tbl_summary()
+trial2 %>% tbl_summary(by = trt) %>% add_p()
