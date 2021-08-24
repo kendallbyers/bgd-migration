@@ -14,15 +14,16 @@ pacman::p_load(corrplot,
                summarytools,
                gtsummary)
 
-#TO DO FOR 8/20 :
-#Re-order series of models (basemod + several factors at a time) and run on Stargazer
-#
+#TO DO FOR 8/23 :
+#output stargazer iterative model in markdown or pdf form
+#post pdf to bgd slack channel
+#Run through tbl_regression() tutorial to print markdown/pdf of
 
 # Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
@@ -133,7 +134,7 @@ dat$crop_sunk <- as.factor(dat$crop_sunk)
 summary(dat$crop_sunk) #257 respondents had submerged crops
 
 dat$low_land <- ifelse(dat$elevation_plot_1 == "Low" |
-                         dat$elevation_plot_2 == "Low", "Lowland", "Not Lowland")
+                         dat$elevation_plot_2 == "Low", 1, 0)
 dat$low_land <- as.factor(dat$low_land)
 summary(dat$low_land) #242 respondents said that they cropped in lowlying land
 
@@ -160,9 +161,9 @@ dat$bad_gates <- as.factor(dat$bad_gates)
 summary(dat$bad_gates) #OK sluices: 712, Poor sluices: 307, NA: 6
 
 #Coding bad water management groups
-as.factor(dat$memb_wmg) -> dat$memb_wmg
-summary(dat$memb_wmg) # there are 232 HHs who have a member in a WMG, 792 who do not
+summary(dat$memb_wmg) # there are 232 HHs who have a member in a WMG, 792 who do not.
 
+dat$memb_wmg <- ifelse(dat$memb_wmg == "yes", 1, 0)
 dat$bad_transparency <- ifelse(dat$transparency <= 5, 1, 0)
 dat$bad_financial <- ifelse(dat$finantial <= 5, 1, 0)
 dat$bad_participation <- ifelse(dat$participation <= 5, 1, 0)
@@ -259,35 +260,32 @@ dat$food_short <- ifelse(dat$food_short_boi == "food shortage" |
                                dat$food_short_magh == "food shortage" |
                                dat$food_short_falgun == "food shortage" |
                                dat$food_short_choitro == "food shortage", 1, 0)
-dat$food_short=as.factor(dat$food_short)
-summary(dat$food_short)
 
-#food_short is heavily colinear with several other factors, so it doesn't like to be run in regressions with other factors.
+sum(dat$food_short) #indeed, there are 236 households reporting food shortage in any year.
+
 #Here is the food_short generalized linear model, showing significance for migration
 
-# nofood <- formula("migration ~ food_short")
-# nofoodmod <- glm(nofood, family = binomial(link="probit"), data=dat)
-# summary(nofoodmod) In short, "No Food Shortage" is highly correlated with migration
+nofood <- formula("migration ~ food_short")
+nofoodmod <- glm(nofood, family = binomial(link="probit"), data=dat)
+summary(nofoodmod) #In short, "No Food Shortage" is highly correlated with migration (99%)
 
+#owever, of the hungry, only 51/236 (or 21.6%) migrated
+ofhungry_movers <- dat %>%
+  filter(food_short == 1) %>%
+  select(migration)
+summary(ofhungry_movers) #51 movers of the hungry
 
-#Of the hungry, only 51/236 (or 21.6%) migrated
+ofhungry_permmove <- dat %>%
+  filter(food_short == 1) %>%
+  select(nature_migrants1)
+summary(ofhungry_permmove) #Permanent migrants were 17, Seasonal was 34, NAs were 185
 
-# ofhungry_movers <- dat %>%
-#   filter(food_short == "Food Shortage") %>%
-#   select(migration)
-# summary(ofhungry_movers)
-#
-# ofhungry_permmove <- dat %>%
-#   filter(food_short == "Food Shortage") %>%
-#   select(nature_migrants1)
-# summary(ofhungry_permmove) #Permanent migrants were 17, Seasonal was 34, NAs were 185
-#
-# #Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
-#
-# ofmovers_hungry <- dat %>%
-#   filter(migration == 1) %>%
-#   select(food_short)
-# summary(ofmovers_hungry)
+#Of the migrants, about 51/165 (or 30.9%) had a food shortage during part of the year
+
+ofmovers_hungry <- dat %>%
+  filter(migration == 1) %>%
+  select(food_short)
+sum(ofmovers_hungry) #indeed, 51 migrants had a food shortage
 
 # Age, gender of First Migrants and Second Migrants
 summary(dat$age_1) #median is 32, mean is 34
@@ -399,12 +397,14 @@ summary(dat$hh_size) #mean HH size is 5 people, median is 4
 
 dat$rice_per_capita <- (dat$quantity_rice)/dat$hh_size
 hist(dat$rice_per_capita)
-summary(dat$rice_per_capita) #Median & Mean is 3kg/wk
+summary(dat$rice_per_capita) #Mean is 3.2kg/wk, Median is 3.0/wk
 
 #what about dependent adults? Does increased dependents further increase migration?
 dat$indigent <- (dat$num_adults - (dat$working_adult_female + dat$working_adult_male))
 dat$indigent <- dat$indigent + dat$kids - dat$workingkids
 hist(dat$indigent)
+summary(dat$indigent)
+sum(dat$indigent, na.rm = TRUE) #579 dependent adults in the dataset.
 
 # Loose ends before running model regressions
 dat$income_bussiness <- as.factor(dat$income_bussiness)
@@ -446,18 +446,22 @@ clim_freq <- formula("migration ~ freq_flood + loss_prod_flood + freq_drought + 
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
 summary(freqmod)
 
+#retrying production loss (environmental perception) as a factor
+# clim_loss <- formula("migration ~ low_land + crop_sunk + percent_abovesea + loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
+# lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
+# summary(lossmod)
+
 baseandclim <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
                   working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects")
 mod2 <- glm(baseandclim, family = binomial(link="probit"), data=dat)
 summary(mod2)
 
 # Which polders had the most migrants? Which ones had the most environmental stresses?
-colnames(dat)
+
 dat2 <- dat %>% select(POL_NAME, hh_size, migration, freq_drought,
                        freq_flood, freq_salinity, freq_insects)
 dat2 %>% tbl_summary()
 dat2 %>% tbl_summary(by = POL_NAME,
-                     add_overall(),
                      statistic = list(all_continuous() ~ "{mean} ({sd})",
                                       all_categorical() ~ "{n} / {N} ({p}%)"),
                      digits = all_continuous() ~ 3,
@@ -468,29 +472,32 @@ dat2 %>% tbl_summary(by = POL_NAME,
                      missing_text = "(Missing)"
 )
 
-tbl_summary(toplines)
+# tbl_summary(toplines)
 
-str(toplines)
 #corplot on climate pressures: let's see how frequency or loss perception affects migration
-clim <- dat %>%
-  select(migration, freq_flood, loss_prod_flood, freq_drought, loss_prod_drought,
-         freq_salinity, loss_prod_salinity, freq_insects, loss_prod_insect, crop_sunk)
-
-dat$migration <- as.numeric(dat$migration)
-dat$crop_sunk <- as.numeric(dat$crop_sunk)
-str(clim)
-
-climat <- cor(clim, use = "complete.obs")
-
-corrplot(climat, order = "AOE", method = "number", type = "lower")
+# clim <- dat %>%
+#   select(migration, freq_flood, loss_prod_flood, freq_drought, loss_prod_drought,
+#          freq_salinity, loss_prod_salinity, freq_insects, loss_prod_insect, crop_sunk)
+#
+# clim$migration <- as.numeric(dat$migration)
+# clim$crop_sunk <- as.numeric(dat$crop_sunk)
+# str(clim)
+#
+# climat <- cor(clim, use = "complete.obs")
+#
+# corrplot(climat, order = "AOE", method = "number", type = "lower")
 
 #Specific Test 2 - poor infrastructure and water management - Poor Canal Condition is 95% predictive for migration,
 # poor sluice gates is 90% predictive, and Having Member of a Water Management Group is 95% predictive
+
+dat$memb_wmg <- as.numeric(dat$memb_wmg)
 
 bad_infra <- formula("migration ~ bad_transparency + bad_financial + bad_participation +
                      bad_rules + bad_gate_operation + maintenance + bad_canals +
                      bad_embankments + bad_gates + memb_wmg")
 bad_infra_mod <- glm(bad_infra, family = binomial(link="probit"), data=dat)
+
+
 summary(bad_infra_mod)
 
 basecliminfra <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
@@ -540,8 +547,7 @@ mod5 <- glm(basecliminframoneyhunger, family = binomial(link="probit"), data=dat
 summary(mod5)
 
 stargazer(mod1, mod2, mod3, mod4, mod5,
-          type = "html",
-          out = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/allthemarbles_0820_1730.htm")
+          out = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/allthemarbles_0823_1330.htm")
 
 
 bottom_line <- formula("migration ~ religion_hh + age_hh + num_male_agri_lobor + working_adult_male + num_rooms +
