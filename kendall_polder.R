@@ -14,10 +14,9 @@ pacman::p_load(corrplot,
                summarytools,
                gtsummary)
 
-#TO DO FOR 8/23 :
-#output stargazer iterative model in markdown or pdf form
+#TO DO FOR 8/24 :
+#output tbl_regression() iterative model in markdown or pdf form
 #post pdf to bgd slack channel
-#Run through tbl_regression() tutorial to print markdown/pdf of
 
 # Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
@@ -105,7 +104,7 @@ dat <- dat %>%
 #Median farm size is 1 acre (.4 ha), mean = .56 ha
 summary(dat$total_plot_area_ha)
 # ggplot(data = dat, mapping = aes(x = total_plot_area_ha, colour = total_plot_area_ha)) +
-  geom_freqpoly(binwidth = 0.1)
+  # geom_freqpoly(binwidth = 0.1)
 
 dat <- dat %>%
   select(-area_plot_1)
@@ -427,11 +426,26 @@ view(dfSummary(toplines))
 colnames(dat)
 
 base<- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
-                    working_adult_male + hh_size + low_land")
+                    num_male_agri_lobor + hh_size + low_land")
 
 mod1 <- glm(base, family = binomial(link="probit"), data=dat)
 
 summary(mod1)
+mod1 %>%
+  tbl_regression(
+    exponentiate = FALSE,
+    pvalue_fun = ~style_pvalue(.x, digits = 2),
+    label = list(farm_types ~ "Land Ownership", edu_hh_code ~ "House Head Literacy",
+                 total_plot_area_ha ~ "Farm Size", age_hh ~ "Age of House Head",
+                 num_male_agri_lobor ~ "Number of Men Working in Agri", hh_size ~ "Household Size",
+                 low_land ~ "One or more lowland plots")) %>%
+  add_global_p() %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/Basemod_0827_1230.html")
 
 #basemod significance: 90% religion_hh = Islam,
 # 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
@@ -441,15 +455,52 @@ summary(mod1)
 # both flood frequency in past 5 years (100%), drought (90%) and insect attack (90%) were significant,
 # while production losses were insignificant as well as sunk crops
 
-clim_freq <- formula("migration ~ freq_flood + loss_prod_flood + freq_drought + loss_prod_drought +
-                      freq_salinity + loss_prod_salinity + freq_insects + loss_prod_insect + crop_sunk")
+clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + freq_insects")
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
 summary(freqmod)
 
+freq_tbl <- freqmod %>%
+  tbl_regression(
+    exponentiate = FALSE,
+    pvalue_fun = ~style_pvalue(.x, digits = 2),
+    label = list(freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
+                 freq_salinity ~ "Oversalinity Frequency", freq_insects ~ "Insect Invasion Frequency")) %>%
+  add_global_p() %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/freqmod_0827_1330.html")
+
 #retrying production loss (environmental perception) as a factor
-# clim_loss <- formula("migration ~ low_land + crop_sunk + percent_abovesea + loss_prod_flood + loss_prod_drought + loss_prod_salinity + loss_prod_insect")
-# lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
-# summary(lossmod)
+dat$binaryflood <- ifelse(dat$loss_prod_flood > 0, 1, 0)
+dat$binarydrought <- ifelse(dat$loss_prod_drought > 0, 1, 0)
+dat$binarysalinity <- ifelse(dat$loss_prod_salinity > 0, 1, 0)
+dat$binaryinsects <- ifelse(dat$loss_prod_insect > 0, 1, 0)
+
+clim_loss <- formula("migration ~ crop_sunk + binaryflood + binarydrought + binarysalinity + binaryinsects")
+lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
+summary(lossmod)
+
+loss_tbl <- lossmod %>%
+  tbl_regression(
+    exponentiate = FALSE,
+    pvalue_fun = ~style_pvalue(.x, digits = 2),
+    label = list(crop_sunk ~ "Crops Drowned", binaryflood ~ "Crops Lost to Flood",
+                 binarydrought ~ "Crops Lost to Drought", binarysalinity ~ "Crops Lost to Salinity",
+                 binaryinsects ~ "Crops Lost to Insects")) %>%
+  add_global_p() %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/lossmod_0827_1335.html")
+
+# Need to turn freq_tbl and loss_tbl into gtsummary objects for this to work - doesn't work yet
+# tbl_merge(tbls = list(freq_tbl, loss_tbl),
+#     tab_spanner = c("**Disaster Frequency**", "**Perceived Production Loss**"))
 
 baseandclim <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
                   working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects")
