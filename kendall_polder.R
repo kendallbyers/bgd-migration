@@ -6,6 +6,7 @@ pacman::p_load(corrplot,
                systemfit,
                aod,
                jtools,
+               sjPlot,
                texreg,
                mfx,
                margins,
@@ -22,13 +23,13 @@ pacman::p_load(corrplot,
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/data/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
 
 #Load preanalyzed excel file (temporary for experiment - remove before publication)
-# mig <- read.csv("C:/Users/kenda/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
+# mig <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
 # View(mig)
 
 dat$age_hh=as.numeric(dat$age_hh)
@@ -304,7 +305,7 @@ summary(nofoodmod) #In short, "No Food Shortage" is highly correlated with migra
 
 nofoodmod %>%
   tbl_regression(
-    exponentiate = TRUE,
+    exponentiate = FALSE,
     pvalue_fun = ~style_pvalue(.x, digits = 2),
 )   %>%
   add_global_p() %>%
@@ -313,7 +314,7 @@ nofoodmod %>%
   italicize_levels() %>%
   modify_header(label = "**Variable**") %>%
   as_gt() %>%
-  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/nofoodmod_0907_2130.html")
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/nofoodmod_0908_1350.html")
 # As per gtsummary, having a food shortage makes someone 132% likelier to migrate, with 99% correlation to migration
 
 #However, of the hungry, only 51/236 (or 21.6%) migrated
@@ -479,6 +480,7 @@ base<- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh + re
 mod1 <- glm(base, family = binomial(link="probit"), data=dat)
 
 summary(mod1)
+jtools::summ(mod1)
 
 mod1 %>%
   tbl_regression(
@@ -494,7 +496,7 @@ mod1 %>%
   italicize_levels() %>%
   modify_header(label = "**Variable**") %>%
   as_gt() %>%
-  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/Basemod_0906_1130.html")
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/Basemod_0906_1130.html")
 
 #basemod significance: 90% religion_hh = Islam,
 # 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
@@ -506,7 +508,10 @@ mod1 %>%
 
 clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + freq_insects")
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
-summary(freqmod)
+summ(freqmod)
+
+e <- mfx::probitmfx(freqmod, data = dat)
+texreg::screenreg(e, booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
 
 # freq_tbl <- freqmod %>%
 #   tbl_regression(
@@ -571,7 +576,7 @@ mod2 %>%
   italicize_levels() %>%
   modify_header(label = "**Variable**") %>%
   as_gt() %>%
-  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/BaseClim_0906_1245.html")
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/BaseClim_0906_1245.html")
 
 # Which polders had the most migrants? Which ones had the most environmental stresses?
 
@@ -633,7 +638,7 @@ infra_tbl <- bad_infra_mod %>%
   italicize_levels() %>%
   modify_header(label = "**Variable**") %>%
   as_gt() %>%
-  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/badinfra_0906_1445.html")
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/badinfra_0906_1445.html")
 
 basecliminfra <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
                          religion_hh + low_land + freq_flood + freq_drought +
@@ -658,7 +663,7 @@ mod3 %>%
   italicize_levels() %>%
   modify_header(label = "**Variable**") %>%
   as_gt() %>%
-  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/BaseClimInfra_0907_1030.html")
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/BaseClimInfra_0907_1030.html")
 
 # Specific test #3 - income and debt load on migration -
 # income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
@@ -687,7 +692,7 @@ money_tbl <- moneymod %>%
   italicize_levels() %>%
   modify_header(label = "**Variable**") %>%
   as_gt() %>%
-  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/money_0907_2100.html")
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/money_0907_2100.html")
 
 ofsharecroppers_movers <- dat %>%
   filter(sharecropping == "Tenant farmer") %>%
@@ -726,7 +731,7 @@ mod4 %>%
   italicize_levels() %>%
   modify_header(label = "**Variable**") %>%
   as_gt() %>%
-  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/mod4_0907_2134.html")
+  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/mod4_0907_2134.html")
 
 # Specific test #4 - food insecurity - food shortage, food restriction, food debt, food consumption score class
 # food_short is highly predictive of migration (no food shortage), but breaks this model due to unknown reason
@@ -746,23 +751,28 @@ monga_mod <- glm(monga, family = binomial(link="probit"), data=dat)
 summary(monga_mod)
 
 basecliminframoneyhunger <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
-                  working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects +
-                  bad_canals + bad_gates + memb_wmg + Annual_income_Non_Agriculture_combined_USD +
-                  kids + income_bussiness + food_restriction + food_short_poush + food_short_magh")
+                  working_adult_male + hh_size + low_land*freq_flood + freq_drought + freq_insects +
+                  bad_canals*bad_gates + memb_wmg + Annual_income_Non_Agriculture_combined_USD +
+                  kids + income_bussiness + food_short")
 
 mod5 <- glm(basecliminframoneyhunger, family = binomial(link="probit"), data=dat)
 summary(mod5)
 
-stargazer(mod1, mod2, mod3, mod4, mod5,
-          out = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/allthemarbles_0823_1330.htm")
+# stargazer(mod1, clim_freq, clim_loss, bad_infra_mod, moneymod, hungermod, mod5
+          # out = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/poolmod_0908_1330.htm")
 
 
-bottom_line <- formula("migration ~ religion_hh + age_hh + num_male_agri_lobor + working_adult_male + num_rooms +
-                       freq_flood + freq_insects + low_land + memb_wmg +
-                       bad_gates + bad_canals + income_bussiness + kids +
-                       Annual_income_Non_Agriculture_combined_USD + food_restriction +
-                       food_short_poush + food_short_magh")
-bottom_line_mod <- glm(bottom_line, family = binomial(link="probit"), data=dat)
+tab_model(mod1, freqmod, lossmod, bad_infra_mod, moneymod, mod5)
+
+texreg::screenreg(list(mod1, freqmod, lossmod, bad_infra_mod, moneymod, mod5), booktabs = TRUE,
+                  dcolumn = TRUE, stars = c(.01, .05, .1))
+
+# # bottom_line <- formula("migration ~ religion_hh + age_hh + num_male_agri_lobor + working_adult_male + num_rooms +
+#                        freq_flood + freq_insects + low_land + memb_wmg +
+#                        bad_gates + bad_canals + income_bussiness + kids +
+#                        Annual_income_Non_Agriculture_combined_USD + food_restriction +
+#                        food_short_poush + food_short_magh")
+# bottom_line_mod <- glm(bottom_line, family = binomial(link="probit"), data=dat)
 summary(bottom_line_mod)
 summ(bottom_line_mod)
 
