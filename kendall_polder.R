@@ -14,9 +14,9 @@ pacman::p_load(corrplot,
                summarytools,
                gtsummary)
 
-#TO DO FOR 8/24 :
-#fix memb_wmg and run tables for infrastructure
-#go back to methods top and rewrite methods
+#TO DO FOR 9/8:
+# make a new hunger regression, or axe it completely.
+# food_short disappears against the backdrop of all previous factors (0.57 significance)
 
 # Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
@@ -252,6 +252,11 @@ dat <- dat %>%
 dat$Annual_income_Non_Agriculture_combined_USD=as.integer(dat$Annual_income_Non_Agriculture_combined_USD)
 summary(dat$Annual_income_Non_Agriculture_combined_USD)
 
+dat <- dat %>%
+  rowwise() %>%
+  mutate(Annual_Income = sum(Annual_income_Agriculture_combined_USD, Annual_income_Non_Agriculture_combined_USD, na.rm = TRUE))
+summary(dat$Annual_Income)
+
 #Annual income from Remittance - Median = $707, Mean = $640/yr, although wider distribution than either local work
 dat <- dat %>%
   mutate(Annual_income_Remittance_USD = annual_income_remi / 84.75) %>% # One BDT = 84.75 USD
@@ -297,18 +302,18 @@ nofood <- formula("migration ~ food_short")
 nofoodmod <- glm(nofood, family = binomial(link="probit"), data=dat)
 summary(nofoodmod) #In short, "No Food Shortage" is highly correlated with migration (99%)
 
-# nofoodmod %>%
-#   tbl_regression(
-#     exponentiate = TRUE,
-#     pvalue_fun = ~style_pvalue(.x, digits = 2),
-# )   %>%
-#   add_global_p() %>%
-#     bold_p(t = 0.10) %>%
-#     bold_labels() %>%
-#   italicize_levels() %>%
-#   modify_header(label = "**Variable**") %>%
-#   as_gt() %>%
-#   gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/nofoodmod_0906_1020.html")
+nofoodmod %>%
+  tbl_regression(
+    exponentiate = TRUE,
+    pvalue_fun = ~style_pvalue(.x, digits = 2),
+)   %>%
+  add_global_p() %>%
+    bold_p(t = 0.10) %>%
+    bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%
+  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/nofoodmod_0907_2130.html")
 # As per gtsummary, having a food shortage makes someone 132% likelier to migrate, with 99% correlation to migration
 
 #However, of the hungry, only 51/236 (or 21.6%) migrated
@@ -608,8 +613,11 @@ bad_infra <- formula("migration ~ memb_wmg + bad_transparency + bad_financial + 
                      bad_rules + bad_gate_operation + bad_maintenance + bad_canals +
                      bad_embankments + bad_gates")
 bad_infra_mod <- glm(bad_infra, family = binomial(link="probit"), data=dat)
-
 summary(bad_infra_mod)
+
+# Why does bad_gates show up later, when all factors are bundled, and why does bad_canals disappear in significance?
+# Even coding for just physical (not social/governance) infrastructure shows that
+# only Canal condition is significant right here, not sluice gates
 
 infra_tbl <- bad_infra_mod %>%
   tbl_regression(
@@ -627,34 +635,104 @@ infra_tbl <- bad_infra_mod %>%
   as_gt() %>%
   gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/badinfra_0906_1445.html")
 
-# REMEMBER TO CHANGE BASECLIMINFRA TO THE PROPER BASE REGRESSION FACTORS, AS WELL AS ENVIRONMENT AND INFRA
-# THEN OUTPUT TO APPENDIX WITH THE 'WHOLE BUCKET' MODEL
-basecliminfra <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
-                  working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects +
-                  bad_canals + bad_gates + memb_wmg")
+basecliminfra <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
+                         religion_hh + low_land + freq_flood + freq_drought +
+                         freq_insects + binarysalinity + memb_wmg + bad_canals + bad_gates")
 
 mod3 <- glm(basecliminfra, family = binomial(link="probit"), data=dat)
 summary(mod3)
 
+mod3 %>%
+  tbl_regression(
+    exponentiate = FALSE,
+    pvalue_fun = ~style_pvalue(.x, digits = 2),
+    label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
+                 edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
+                 religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
+                 freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
+                 freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity",
+                 memb_wmg ~ "WMG Membership", bad_canals ~ "Poor Canal Condition", bad_gates ~ "Poor Sluice Gate Condition")) %>%
+  add_global_p() %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%
+  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/BaseClimInfra_0907_1030.html")
+
 # Specific test #3 - income and debt load on migration -
 # income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
 
+dat$Annual_Income <- as.numeric(dat$Annual_Income)
+
 money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_income_Non_Agriculture_combined_USD +
-                 farm_types + kids + num_rooms + income_rent + income_caste_occu +
-                 income_fish + income_poultry + income_bussiness + income_transport + total_plot_area_ha")
+                 total_plot_area_ha + sharecropping + num_male_agri_lobor + num_child_male + num_rooms +
+                 salary_pension + income_bussiness")
 moneymod <- glm(money, family = binomial(link="probit"), data=dat)
 summary(moneymod)
 
-basecliminframoney <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
-                  working_adult_male + hh_size + low_land + freq_flood + freq_drought + freq_insects +
-                  bad_canals + bad_gates + memb_wmg + Annual_income_Non_Agriculture_combined_USD +
-                  kids + income_bussiness")
+colnames(dat)
+money_tbl <- moneymod %>%
+  tbl_regression(
+    exponentiate = FALSE,
+    pvalue_fun = ~style_pvalue(.x, digits = 2),
+    label = list(Annual_income_Agriculture_combined_USD ~ "Annual Agriculture Income",
+                 Annual_income_Non_Agriculture_combined_USD ~ "Annual Non-Ag Income",
+                 total_plot_area_ha ~ "Size of Farm", sharecropping ~ "Sharecropping", num_male_agri_lobor ~ "Men Working in Ag",
+                 num_child_male ~ "Number of Boys", num_rooms ~ "Rooms in House",
+                 salary_pension ~ "Salary or Pension", income_bussiness ~ "Business & Trade Income")) %>%
+  add_global_p() %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%
+  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/money_0907_2100.html")
+
+ofsharecroppers_movers <- dat %>%
+  filter(sharecropping == "Tenant farmer") %>%
+  select(migration)
+summary(ofsharecroppers_movers) #64 sharecroppers migrated | 68 wage | 43 nonAg wage | 48 salary | 13 business | 10 truckers | 5 caste | 107 poultry
+# 73 veg
+
+# length(which(dat$*** == "Yes")) #Only 21 Rent, 25 Remi, 111 Assets, 307 wage, 197 wage NonAg,
+#169 salary/pension, 167 business, 79 transport, 51 caste, 84 other, 619 poultry, 446 fish, 427 vege,
+#933 no working women in ag (92 had working women), 678 no working men in Ag (347 had worken men),
+#664 no working men in nonag (361 had working men in non-ag),
+
+basecliminframoney <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
+                         religion_hh + low_land + freq_flood + freq_drought +
+                         freq_insects + binarysalinity + memb_wmg + bad_canals + bad_gates +
+                         sharecropping + num_male_agri_lobor + salary_pension + income_bussiness")
 
 mod4 <-glm(basecliminframoney, family = binomial(link="probit"), data=dat)
 summary(mod4)
 
+mod4 %>%
+  tbl_regression(
+    exponentiate = FALSE,
+    pvalue_fun = ~style_pvalue(.x, digits = 2),
+    label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
+                 edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
+                 religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
+                 freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
+                 freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity",
+                 memb_wmg ~ "WMG Membership", bad_canals ~ "Poor Canal Condition", bad_gates ~ "Poor Sluice Gate Condition",
+                 sharecropping ~ "Sharecropping", num_male_agri_lobor ~ "No. of Men Working in Ag",
+                 salary_pension ~ "Salary or Pension", income_bussiness ~ "Business & Trade Income")) %>%
+  add_global_p() %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%
+  gt::gtsave(filename = "C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/output/mod4_0907_2134.html")
+
 # Specific test #4 - food insecurity - food shortage, food restriction, food debt, food consumption score class
 # food_short is highly predictive of migration (no food shortage), but breaks this model due to unknown reason
+
+# TO DO: make a new hunger regression, or axe it completely.
+# It disappears against the backdrop of all previous factors (0.57 significance)
 
 hunger_reg <- formula("migration ~ food_restriction + rice_per_capita + food_debt + FCS")
 hungermod <- glm(hunger_reg, family = binomial(link="probit"), data=dat)
