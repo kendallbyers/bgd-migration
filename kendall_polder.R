@@ -23,7 +23,7 @@ pacman::p_load(corrplot,
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/data/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/data/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
@@ -477,26 +477,35 @@ colnames(dat)
 base<- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh + religion_hh + farm_types +
                total_plot_area_ha + low_land")
 
-mod1 <- glm(base, family = binomial(link="probit"), data=dat)
+basemod <- glm(base, family = binomial(link="probit"), data=dat)
+
+mod1form <- formula("migration ~ age_hh + religion_hh + low_land")
+mod1 <- glm(mod1form, family = binomial(link="probit"), data=dat)
 
 summary(mod1)
+margins(mod1)
 jtools::summ(mod1)
 
-mod1 %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-    label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
-                 edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
-                 religion_hh ~ "Religion", farm_types ~ "Land Ownership",
-                 total_plot_area_ha ~ "Farm Size", low_land ~ "One or more lowland plots")) %>%
-  add_global_p() %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/Basemod_0906_1130.html")
+# e <- mfx::probitmfx(mod1, data = dat)
+# texreg::screenreg(e, booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
+
+# CHOOSE age_hh + religion_hh + farm_types + low_land
+
+# mod1 %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+#     label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
+#                  edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
+#                  religion_hh ~ "Religion", farm_types ~ "Land Ownership",
+#                  total_plot_area_ha ~ "Farm Size", low_land ~ "One or more lowland plots")) %>%
+#   add_global_p() %>%
+#   bold_p(t = 0.10) %>%
+#   bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/Basemod_0906_1130.html")
 
 #basemod significance: 90% religion_hh = Islam,
 # 100% num_male_agri_lobor, 99% age_hh, 90% working_adult_male, 90% num_rooms, 95% not low_land
@@ -508,10 +517,12 @@ mod1 %>%
 
 clim_freq <- formula("migration ~ freq_flood + freq_drought + freq_salinity + freq_insects")
 freqmod <- glm(clim_freq, family = binomial(link="probit"), data=dat)
-summ(freqmod)
+summary(freqmod)
 
-e <- mfx::probitmfx(freqmod, data = dat)
-texreg::screenreg(e, booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
+#CHOOSE - freq_flood + freq_insects
+
+# e <- mfx::probitmfx(freqmod, data = dat)
+# texreg::screenreg(e, booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
 
 # freq_tbl <- freqmod %>%
 #   tbl_regression(
@@ -537,46 +548,55 @@ clim_loss <- formula("migration ~ crop_sunk + binaryflood + binarydrought + bina
 lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
 summary(lossmod)
 
-loss_tbl <- lossmod %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-    label = list(crop_sunk ~ "Crops Drowned", binaryflood ~ "Crops Lost to Flood",
-                 binarydrought ~ "Crops Lost to Drought", binarysalinity ~ "Crops Lost to Salinity",
-                 binaryinsects ~ "Crops Lost to Insects")) %>%
-  add_global_p() %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/lossmod_0827_1335.html")
+# CHOOSE binarysalinity
+
+mod2form <- formula("migration ~ freq_flood + freq_insects + binarysalinity")
+mod2 <- glm(mod2form, family = binomial(link="probit"), data=dat)
+
+summary(mod2)
+
+margins(mod2)
+
+# loss_tbl <- lossmod %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+#     label = list(crop_sunk ~ "Crops Drowned", binaryflood ~ "Crops Lost to Flood",
+#                  binarydrought ~ "Crops Lost to Drought", binarysalinity ~ "Crops Lost to Salinity",
+#                  binaryinsects ~ "Crops Lost to Insects")) %>%
+#   add_global_p() %>%
+#   bold_p(t = 0.10) %>%
+#   bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/lossmod_0827_1335.html")
 
 # Need to turn freq_tbl and loss_tbl into gtsummary objects to merge - doesn't work yet
 # tbl_merge(tbls = list(freq_tbl, loss_tbl),
 #     tab_spanner = c("**Disaster Frequency**", "**Perceived Production Loss**"))
 
-baseandclim <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
-                  religion_hh + low_land + freq_flood + freq_drought + freq_insects + binarysalinity")
-mod2 <- glm(baseandclim, family = binomial(link="probit"), data=dat)
-summary(mod2)
-
-mod2 %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-    label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
-                 edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
-                 religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
-                 freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
-                 freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity")) %>%
-  add_global_p() %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/BaseClim_0906_1245.html")
+# baseandclim <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
+#                   religion_hh + low_land + freq_flood + freq_drought + freq_insects + binarysalinity")
+# mod2 <- glm(baseandclim, family = binomial(link="probit"), data=dat)
+# summary(mod2)
+#
+# mod2 %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+#     label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
+#                  edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
+#                  religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
+#                  freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
+#                  freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity")) %>%
+#   add_global_p() %>%
+#   bold_p(t = 0.10) %>%
+#   bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/BaseClim_0906_1245.html")
 
 # Which polders had the most migrants? Which ones had the most environmental stresses?
 
@@ -612,7 +632,7 @@ mod2 %>%
 #Specific Test 2 - poor infrastructure and water management - Poor Canal Condition is 95% predictive for migration,
 # poor sluice gates is 90% predictive, and Having Member of a Water Management Group is 95% predictive
 
-glm("migration ~ memb_wmg", family = binomial(link = "probit"), data = dat)
+# glm("migration ~ memb_wmg", family = binomial(link = "probit"), data = dat)
 
 bad_infra <- formula("migration ~ memb_wmg + bad_transparency + bad_financial + bad_participation +
                      bad_rules + bad_gate_operation + bad_maintenance + bad_canals +
@@ -620,55 +640,63 @@ bad_infra <- formula("migration ~ memb_wmg + bad_transparency + bad_financial + 
 bad_infra_mod <- glm(bad_infra, family = binomial(link="probit"), data=dat)
 summary(bad_infra_mod)
 
+# CHOOSE memb_wmg + bad_canals + bad_gates
+
+mod3form <- formula("migration ~ memb_wmg + bad_canals + bad_gates")
+mod3 <- glm(mod3form, family = binomial(link="probit"), data=dat)
+
+summary(mod3)
+margins(mod3)
+
 # Why does bad_gates show up later, when all factors are bundled, and why does bad_canals disappear in significance?
 # Even coding for just physical (not social/governance) infrastructure shows that
 # only Canal condition is significant right here, not sluice gates
 
-infra_tbl <- bad_infra_mod %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-    label = list(memb_wmg ~ "WMG Membership", bad_transparency ~ "Not Transparent", bad_financial ~ "Corruption",
-                 bad_participation ~ "Not Inclusive", bad_rules ~ "Ineffective Rules",
-                 bad_gate_operation ~ "Bad Gate Operation", bad_maintenance ~ "Poor Maintenance",
-                 bad_canals ~ "Poor Canal Conditions", bad_embankments ~ "Poor Seawalls", bad_gates ~ "Poor Sluice Gates")) %>%
-  add_global_p() %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/badinfra_0906_1445.html")
+# infra_tbl <- bad_infra_mod %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+#     label = list(memb_wmg ~ "WMG Membership", bad_transparency ~ "Not Transparent", bad_financial ~ "Corruption",
+#                  bad_participation ~ "Not Inclusive", bad_rules ~ "Ineffective Rules",
+#                  bad_gate_operation ~ "Bad Gate Operation", bad_maintenance ~ "Poor Maintenance",
+#                  bad_canals ~ "Poor Canal Conditions", bad_embankments ~ "Poor Seawalls", bad_gates ~ "Poor Sluice Gates")) %>%
+#   add_global_p() %>%
+#   bold_p(t = 0.10) %>%
+#   bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/badinfra_0906_1445.html")
+#
+# basecliminfra <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
+#                          religion_hh + low_land + freq_flood + freq_drought +
+#                          freq_insects + binarysalinity + memb_wmg + bad_canals + bad_gates")
 
-basecliminfra <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
-                         religion_hh + low_land + freq_flood + freq_drought +
-                         freq_insects + binarysalinity + memb_wmg + bad_canals + bad_gates")
-
-mod3 <- glm(basecliminfra, family = binomial(link="probit"), data=dat)
-summary(mod3)
-
-mod3 %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-    label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
-                 edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
-                 religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
-                 freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
-                 freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity",
-                 memb_wmg ~ "WMG Membership", bad_canals ~ "Poor Canal Condition", bad_gates ~ "Poor Sluice Gate Condition")) %>%
-  add_global_p() %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/BaseClimInfra_0907_1030.html")
+# mod3 <- glm(basecliminfra, family = binomial(link="probit"), data=dat)
+# summary(mod3)
+#
+# mod3 %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+#     label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
+#                  edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
+#                  religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
+#                  freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
+#                  freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity",
+#                  memb_wmg ~ "WMG Membership", bad_canals ~ "Poor Canal Condition", bad_gates ~ "Poor Sluice Gate Condition")) %>%
+#   add_global_p() %>%
+#   bold_p(t = 0.10) %>%
+#   bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/BaseClimInfra_0907_1030.html")
 
 # Specific test #3 - income and debt load on migration -
 # income from trade and business strongly predicts migration (100%), with number of kids (90%) and Non-Ag income (90%)
 
-dat$Annual_Income <- as.numeric(dat$Annual_Income)
+# dat$Annual_Income <- as.numeric(dat$Annual_Income)
 
 money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_income_Non_Agriculture_combined_USD +
                  total_plot_area_ha + sharecropping + num_male_agri_lobor + num_child_male + num_rooms +
@@ -676,62 +704,71 @@ money <- formula("migration ~ Annual_income_Agriculture_combined_USD + Annual_in
 moneymod <- glm(money, family = binomial(link="probit"), data=dat)
 summary(moneymod)
 
-colnames(dat)
-money_tbl <- moneymod %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-    label = list(Annual_income_Agriculture_combined_USD ~ "Annual Agriculture Income",
-                 Annual_income_Non_Agriculture_combined_USD ~ "Annual Non-Ag Income",
-                 total_plot_area_ha ~ "Size of Farm", sharecropping ~ "Sharecropping", num_male_agri_lobor ~ "Men Working in Ag",
-                 num_child_male ~ "Number of Boys", num_rooms ~ "Rooms in House",
-                 salary_pension ~ "Salary or Pension", income_bussiness ~ "Business & Trade Income")) %>%
-  add_global_p() %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/money_0907_2100.html")
+# CHOOSE sharecropping + num_male_agri_lobor + salary_pension + income_bussiness
 
-ofsharecroppers_movers <- dat %>%
-  filter(sharecropping == "Tenant farmer") %>%
-  select(migration)
-summary(ofsharecroppers_movers) #64 sharecroppers migrated | 68 wage | 43 nonAg wage | 48 salary | 13 business | 10 truckers | 5 caste | 107 poultry
-# 73 veg
+mod4form <- formula("migration ~ sharecropping + num_male_agri_lobor + salary_pension + income_bussiness + food_short")
+mod4 <- glm(mod4form, family = binomial(link="probit"), data=dat)
+
+summary(mod4)
+margins(mod4)
+
+
+# colnames(dat)
+# money_tbl <- moneymod %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+#     label = list(Annual_income_Agriculture_combined_USD ~ "Annual Agriculture Income",
+#                  Annual_income_Non_Agriculture_combined_USD ~ "Annual Non-Ag Income",
+#                  total_plot_area_ha ~ "Size of Farm", sharecropping ~ "Sharecropping", num_male_agri_lobor ~ "Men Working in Ag",
+#                  num_child_male ~ "Number of Boys", num_rooms ~ "Rooms in House",
+#                  salary_pension ~ "Salary or Pension", income_bussiness ~ "Business & Trade Income")) %>%
+#   add_global_p() %>%
+#   bold_p(t = 0.10) %>%
+#   bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/money_0907_2100.html")
+
+# ofsharecroppers_movers <- dat %>%
+#   filter(sharecropping == "Tenant farmer") %>%
+#   select(migration)
+# summary(ofsharecroppers_movers) #64 sharecroppers migrated | 68 wage | 43 nonAg wage | 48 salary | 13 business | 10 truckers | 5 caste | 107 poultry
+# # 73 veg
 
 # length(which(dat$*** == "Yes")) #Only 21 Rent, 25 Remi, 111 Assets, 307 wage, 197 wage NonAg,
 #169 salary/pension, 167 business, 79 transport, 51 caste, 84 other, 619 poultry, 446 fish, 427 vege,
 #933 no working women in ag (92 had working women), 678 no working men in Ag (347 had worken men),
 #664 no working men in nonag (361 had working men in non-ag),
 
-basecliminframoney <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
-                         religion_hh + low_land + freq_flood + freq_drought +
-                         freq_insects + binarysalinity + memb_wmg + bad_canals + bad_gates +
-                         sharecropping + num_male_agri_lobor + salary_pension + income_bussiness")
+# basecliminframoney <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh +
+#                          religion_hh + low_land + freq_flood + freq_drought +
+#                          freq_insects + binarysalinity + memb_wmg + bad_canals + bad_gates +
+#                          sharecropping + num_male_agri_lobor + salary_pension + income_bussiness")
+#
+# mod4 <-glm(basecliminframoney, family = binomial(link="probit"), data=dat)
+# summary(mod4)
 
-mod4 <-glm(basecliminframoney, family = binomial(link="probit"), data=dat)
-summary(mod4)
-
-mod4 %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-    label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
-                 edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
-                 religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
-                 freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
-                 freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity",
-                 memb_wmg ~ "WMG Membership", bad_canals ~ "Poor Canal Condition", bad_gates ~ "Poor Sluice Gate Condition",
-                 sharecropping ~ "Sharecropping", num_male_agri_lobor ~ "No. of Men Working in Ag",
-                 salary_pension ~ "Salary or Pension", income_bussiness ~ "Business & Trade Income")) %>%
-  add_global_p() %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/mod4_0907_2134.html")
+# mod4 %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+#     label = list(hh_size ~ "Household Size", num_adult_male ~ "Number of Men",
+#                  edu_hh_code ~ "House Head Literacy", age_hh ~ "Age of House Head",
+#                  religion_hh ~ "Religion", low_land ~ "One or more lowland plots",
+#                  freq_flood ~ "Flood Frequency", freq_drought ~ "Drought Frequency",
+#                  freq_insects ~ "Insect Invasion Frequency", binarysalinity ~ "Crops Lost to Salinity",
+#                  memb_wmg ~ "WMG Membership", bad_canals ~ "Poor Canal Condition", bad_gates ~ "Poor Sluice Gate Condition",
+#                  sharecropping ~ "Sharecropping", num_male_agri_lobor ~ "No. of Men Working in Ag",
+#                  salary_pension ~ "Salary or Pension", income_bussiness ~ "Business & Trade Income")) %>%
+#   add_global_p() %>%
+#   bold_p(t = 0.10) %>%
+#   bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/output/mod4_0907_2134.html")
 
 # Specific test #4 - food insecurity - food shortage, food restriction, food debt, food consumption score class
 # food_short is highly predictive of migration (no food shortage), but breaks this model due to unknown reason
@@ -739,32 +776,43 @@ mod4 %>%
 # TO DO: make a new hunger regression, or axe it completely.
 # It disappears against the backdrop of all previous factors (0.57 significance)
 
-hunger_reg <- formula("migration ~ food_restriction + rice_per_capita + food_debt + FCS")
-hungermod <- glm(hunger_reg, family = binomial(link="probit"), data=dat)
-summary(hungermod) #No Food Shortage (99% correlated), No Forced Food Restriction (90% correlated)
+# hunger_reg <- formula("migration ~ food_restriction + rice_per_capita + food_debt + FCS")
+# hungermod <- glm(hunger_reg, family = binomial(link="probit"), data=dat)
+# summary(hungermod) #No Food Shortage (99% correlated), No Forced Food Restriction (90% correlated)
 
 #Monthly hunger correlation - Having adequate food in months of Poush (90%) and Magh (95%) indicate migration
-monga <- formula("migration ~ food_short_boi + food_short_jios + food_short_ash + food_short_sra +
-                 food_short_bhadro + food_short_ashshin + food_short_kartik + food_short_ograon +
-                 food_short_poush + food_short_magh + food_short_falgun + food_short_choitro")
-monga_mod <- glm(monga, family = binomial(link="probit"), data=dat)
-summary(monga_mod)
-
-basecliminframoneyhunger <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
-                  working_adult_male + hh_size + low_land*freq_flood + freq_drought + freq_insects +
-                  bad_canals*bad_gates + memb_wmg + Annual_income_Non_Agriculture_combined_USD +
-                  kids + income_bussiness + food_short")
-
-mod5 <- glm(basecliminframoneyhunger, family = binomial(link="probit"), data=dat)
-summary(mod5)
+# monga <- formula("migration ~ food_short_boi + food_short_jios + food_short_ash + food_short_sra +
+#                  food_short_bhadro + food_short_ashshin + food_short_kartik + food_short_ograon +
+#                  food_short_poush + food_short_magh + food_short_falgun + food_short_choitro")
+# monga_mod <- glm(monga, family = binomial(link="probit"), data=dat)
+# summary(monga_mod)
+#
+# basecliminframoneyhunger <- formula("migration ~ farm_types + edu_hh_code + total_plot_area_ha + age_hh +
+#                   working_adult_male + hh_size + low_land*freq_flood + freq_drought + freq_insects +
+#                   bad_canals*bad_gates + memb_wmg + Annual_income_Non_Agriculture_combined_USD +
+#                   kids + income_bussiness + food_short")
+#
+# mod5 <- glm(basecliminframoneyhunger, family = binomial(link="probit"), data=dat)
+# summary(mod5)
+#
+# mod5form <- formula("migration ~ food_short")
+# mod5 <- glm(mod5form, family = binomial(link="probit"), data=dat)
+#
+# summary(mod5)
 
 # stargazer(mod1, clim_freq, clim_loss, bad_infra_mod, moneymod, hungermod, mod5
           # out = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/poolmod_0908_1330.htm")
 
 
-tab_model(mod1, freqmod, lossmod, bad_infra_mod, moneymod, mod5)
+tab_model(mod1, mod2, mod3, mod4, poolmod)
 
-texreg::screenreg(list(mod1, freqmod, lossmod, bad_infra_mod, moneymod, mod5), booktabs = TRUE,
+poolmodform <- formula("migration ~ age_hh + religion_hh + low_land + freq_flood + freq_insects +
+                       binarysalinity + memb_wmg + bad_canals + bad_gates + sharecropping +
+                       num_male_agri_lobor + salary_pension + income_bussiness + food_short")
+poolmod <- glm(poolmodform, family = binomial(link="probit"), data=dat)
+summary(poolmod)
+
+texreg::screenreg(list(mod1, mod2, mod3, mod4, poolmod), booktabs = TRUE,
                   dcolumn = TRUE, stars = c(.01, .05, .1))
 
 # # bottom_line <- formula("migration ~ religion_hh + age_hh + num_male_agri_lobor + working_adult_male + num_rooms +
