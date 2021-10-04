@@ -13,11 +13,14 @@ pacman::p_load(corrplot,
                gvlma,
                dplyr,
                summarytools,
-               gtsummary)
+               gtsummary,
+               huxtable,
+               ggstance,
+               officer,
+               flextable)
 
-#TO DO FOR 9/8:
-# make a new hunger regression, or axe it completely.
-# food_short disappears against the backdrop of all previous factors (0.57 significance)
+#TO DO FOR 10/4:
+# Compile analysis after marginal regression table is made
 
 # Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
@@ -301,20 +304,20 @@ sum(dat$food_short) #indeed, there are 236 households reporting food shortage in
 
 nofood <- formula("migration ~ food_short")
 nofoodmod <- glm(nofood, family = binomial(link="probit"), data=dat)
-summary(nofoodmod) #In short, "No Food Shortage" is highly correlated with migration (99%)
+summary(nofoodmod) #In short, "Food Shortage" is highly correlated with migration (99%)
 
-nofoodmod %>%
-  tbl_regression(
-    exponentiate = FALSE,
-    pvalue_fun = ~style_pvalue(.x, digits = 2),
-)   %>%
-  add_global_p() %>%
-    bold_p(t = 0.10) %>%
-    bold_labels() %>%
-  italicize_levels() %>%
-  modify_header(label = "**Variable**") %>%
-  as_gt() %>%
-  gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/nofoodmod_0908_1350.html")
+# nofoodmod %>%
+#   tbl_regression(
+#     exponentiate = FALSE,
+#     pvalue_fun = ~style_pvalue(.x, digits = 2),
+# )   %>%
+#   add_global_p() %>%
+#     bold_p(t = 0.10) %>%
+#     bold_labels() %>%
+#   italicize_levels() %>%
+#   modify_header(label = "**Variable**") %>%
+#   as_gt() %>%
+#   gt::gtsave(filename = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/nofoodmod_0908_1350.html")
 # As per gtsummary, having a food shortage makes someone 132% likelier to migrate, with 99% correlation to migration
 
 #However, of the hungry, only 51/236 (or 21.6%) migrated
@@ -475,19 +478,20 @@ dat$income_bussiness <- as.factor(dat$income_bussiness)
 colnames(dat)
 
 base<- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh + religion_hh + farm_types +
-               total_plot_area_ha + low_land")
+               total_plot_area_ha + low_land + food_short")
 
 basemod <- glm(base, family = binomial(link="probit"), data=dat)
+summary(basemod)
 
-mod1form <- formula("migration ~ age_hh + religion_hh + low_land")
+mod1form <- formula("migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short")
 mod1 <- glm(mod1form, family = binomial(link="probit"), data=dat)
 
 summary(mod1)
 margins(mod1)
 jtools::summ(mod1)
 
-# e <- mfx::probitmfx(mod1, data = dat)
-# texreg::screenreg(e, booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
+e <- mfx::probitmfx(mod1, data = dat)
+texreg::screenreg(e, booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
 
 # CHOOSE age_hh + religion_hh + farm_types + low_land
 
@@ -548,14 +552,16 @@ clim_loss <- formula("migration ~ crop_sunk + binaryflood + binarydrought + bina
 lossmod <- glm(clim_loss, family = binomial(link="probit"), data=dat)
 summary(lossmod)
 
-# CHOOSE binarysalinity
+# CHOOSE binarysalinity. freq_flood and freq_insects are also significant
 
-mod2form <- formula("migration ~ freq_flood + freq_insects + binarysalinity")
+mod2form <- formula("migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short +
+                    freq_flood + freq_drought + freq_insects + binarysalinity")
 mod2 <- glm(mod2form, family = binomial(link="probit"), data=dat)
 
 summary(mod2)
-
 margins(mod2)
+export_summs(mod1, mod2, scale = TRUE)
+# plot_summs(mod1, mod2, scale = TRUE, plot.distributions = TRUE)
 
 # loss_tbl <- lossmod %>%
 #   tbl_regression(
@@ -642,11 +648,16 @@ summary(bad_infra_mod)
 
 # CHOOSE memb_wmg + bad_canals + bad_gates
 
-mod3form <- formula("migration ~ memb_wmg + bad_canals + bad_gates")
+mod3form <- formula("migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short +
+                    memb_wmg + bad_canals + bad_gates")
 mod3 <- glm(mod3form, family = binomial(link="probit"), data=dat)
 
 summary(mod3)
 margins(mod3)
+
+export_summs(mod1, mod2, mod3, scale = TRUE)
+
+# plot_summs(mod1, mod2, mod3, scale = TRUE, plot.distributions = TRUE)
 
 # Why does bad_gates show up later, when all factors are bundled, and why does bad_canals disappear in significance?
 # Even coding for just physical (not social/governance) infrastructure shows that
@@ -706,12 +717,14 @@ summary(moneymod)
 
 # CHOOSE sharecropping + num_male_agri_lobor + salary_pension + income_bussiness
 
-mod4form <- formula("migration ~ sharecropping + num_male_agri_lobor + salary_pension + income_bussiness + food_short")
+mod4form <- formula("migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short +
+                    sharecropping + num_male_agri_lobor + salary_pension + income_bussiness")
 mod4 <- glm(mod4form, family = binomial(link="probit"), data=dat)
 
 summary(mod4)
 margins(mod4)
 
+export_summs(mod1, mod2, mod3, mod4, scale = TRUE)
 
 # colnames(dat)
 # money_tbl <- moneymod %>%
@@ -803,17 +816,35 @@ margins(mod4)
 # stargazer(mod1, clim_freq, clim_loss, bad_infra_mod, moneymod, hungermod, mod5
           # out = "C:/Users/Kendall Byers/Documents/R/bgd-migration/output/poolmod_0908_1330.htm")
 
-
-tab_model(mod1, mod2, mod3, mod4, poolmod)
-
-poolmodform <- formula("migration ~ age_hh + religion_hh + low_land + freq_flood + freq_insects +
+poolmodform <- formula("migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short + freq_flood + freq_drought + freq_insects +
                        binarysalinity + memb_wmg + bad_canals + bad_gates + sharecropping +
-                       num_male_agri_lobor + salary_pension + income_bussiness + food_short")
+                       num_male_agri_lobor + salary_pension + income_bussiness")
 poolmod <- glm(poolmodform, family = binomial(link="probit"), data=dat)
 summary(poolmod)
 
-texreg::screenreg(list(mod1, mod2, mod3, mod4, poolmod), booktabs = TRUE,
-                  dcolumn = TRUE, stars = c(.01, .05, .1))
+# tab_model(mod1, mod2, mod3, mod4, poolmod)
+
+# sigs <- formula("migration ~ age_hh + religion_hh + low_land + food_short + freq_flood +
+                      # binarysalinity + memb_wmg + bad_gates + num_male_agri_lobor + salary_pension + income_bussiness")
+# sigmod <- glm(sigs, family = binomial(link="probit"), data=dat)
+
+export_summs(mod1, mod2, mod3, mod4, poolmod, sigmod, digits = 3, scale = TRUE,
+             model.names = c("Base", "Climate", "Infrastructure", "Economics", "Pooled Model", "Significant Fx"),
+             to.file = "word", file.name = "regressions_927_1241.docx")
+
+probitmfx(mod1, data = dat)
+
+e1 <- mfx::probitmfx(mod1, data = dat)
+e2 <- mfx::probitmfx(mod2, data = dat)
+e3 <- mfx::probitmfx(mod3, data = dat)
+e4 <- mfx::probitmfx(mod4, data = dat)
+e5 <- mfx::probitmfx(poolmod, data = dat)
+
+texreg::wordreg(list(e1, e2, e3, e4, e5), file = "Marginal_Effects_10421_130.docx", booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
+
+
+# texreg::screenreg(list(mod1, mod2, mod3, mod4, poolmod), booktabs = TRUE,
+#                   dcolumn = TRUE, stars = c(.01, .05, .1))
 
 # # bottom_line <- formula("migration ~ religion_hh + age_hh + num_male_agri_lobor + working_adult_male + num_rooms +
 #                        freq_flood + freq_insects + low_land + memb_wmg +
@@ -821,67 +852,73 @@ texreg::screenreg(list(mod1, mod2, mod3, mod4, poolmod), booktabs = TRUE,
 #                        Annual_income_Non_Agriculture_combined_USD + food_restriction +
 #                        food_short_poush + food_short_magh")
 # bottom_line_mod <- glm(bottom_line, family = binomial(link="probit"), data=dat)
-summary(bottom_line_mod)
-summ(bottom_line_mod)
+# summary(bottom_line_mod)
+# summ(bottom_line_mod)
 
 #throw them all into a bucket and corrplot them
+
+migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short + freq_flood + freq_drought + freq_insects +
+  binarysalinity + memb_wmg + bad_canals + bad_gates + sharecropping +
+  num_male_agri_lobor + salary_pension + income_bussiness
+
 bucket <- dat %>%
-  select(migration, religion_hh, farm_types, age_hh,
-         num_male_agri_lobor, working_adult_female, working_adult_male,
-         num_rooms, freq_flood, freq_insects, low_land, memb_wmg,
-         bad_gates, bad_canals, income_bussiness, kids,
-         Annual_income_Non_Agriculture_combined_USD, food_restriction,
-         food_short_poush, food_short_magh)
+  select(migration)
+# hh_size, num_adult_male, age_hh, religion_hh, low_land, food_short,
+#          freq_flood, freq_drought, freq_insects, farm_types, bad_embankments, bad_canals, bad_gates,
+#          Annual_income_Non_Agriculture_combined_USD, food_restriction, food_debt)
 
 #Correlation matrix must be numeric, and have short names to fit on graph
-bucket$migration <- bucket$migration <- as.integer(dat$migration)
-bucket$religion <- bucket$religion_hh <- as.numeric(dat$religion_hh)
-bucket$age <- bucket$age_hh <- as.numeric(dat$age_hh)
-bucket$agworkmen <- bucket$num_male_agri_lobor <- as.numeric(dat$num_male_agri_lobor)
-bucket$workingwomen <- bucket$working_adult_female <- as.numeric(dat$working_adult_female)
-bucket$workingmen <- bucket$working_adult_male <- as.numeric(dat$working_adult_male)
-bucket$rooms <- bucket$num_rooms <- as.numeric(dat$num_rooms)
-bucket$floods <- bucket$freq_flood <- as.numeric(dat$freq_flood)
-bucket$insects <- bucket$freq_insects <- as.numeric(dat$freq_insects)
+
+bucket$migration <- as.integer(dat$migration)
+
+bucket$family_size <- as.integer(dat$hh_size)
+
+bucket$men <- as.numeric(dat$num_adult_male)
+
+bucket$age <- as.numeric(dat$age_hh)
+
+bucket$religion <- as.numeric(dat$religion_hh)
+
 bucket$low_land <- as.numeric(dat$low_land)
-bucket$memb_wmg <- as.numeric(dat$memb_wmg)
-bucket$bad_gates <- bucket$bad_gates <- as.numeric(dat$bad_gates)
-bucket$bad_canals <- bucket$bad_canals <- as.numeric(dat$bad_canals)
-bucket$kids <- as.numeric(dat$kids)
-bucket$NonAgIncome <- bucket$Annual_income_Non_Agriculture_combined_USD <- as.numeric(dat$Annual_income_Non_Agriculture_combined_USD)
-bucket$lessfood <- bucket$food_restriction <- as.numeric(dat$food_restriction)
-bucket$NoLandDeeds <- ifelse(dat$farm_types == "No Papers", 1, 0)
-bucket$trade <- bucket$income_bussiness <- ifelse(dat$income_bussiness == "Yes", 1, 0)
-# bucket$poush <- bucket$food_short_poush <- ifelse(dat$food_short_poush == "food shortage", 1, 0)
-# bucket$magh <- bucket$food_short_magh <- ifelse(dat$food_short_magh == "food shortage", 1, 0)
-bucket$food_short <- ifelse(dat$food_short == "Food Shortage", 1, 0)
-bucket$food_short <- as.integer(bucket$food_short)
-#Remove unabbreviated names
-bucket <- bucket %>%
-  select(-religion_hh,
-         -age_hh,
-         -num_male_agri_lobor,
-         -working_adult_male,
-         -working_adult_female,
-         -num_rooms,
-         -freq_flood,
-         -freq_insects,
-         -Annual_income_Non_Agriculture_combined_USD,
-         -income_bussiness,
-         -food_restriction)
+
+# bucket$food_short <- ifelse(dat$food_short == "Food Shortage", 1, 0)
+# bucket$food_short <- as.integer(bucket$food_short)
+
+bucket$floods <- as.numeric(dat$freq_flood)
+
+bucket$drought <- as.numeric(dat$freq_drought)
+
+bucket$insect_attack <- as.numeric(dat$freq_insects)
+
+bucket$no_land_deed <- ifelse(dat$farm_types == "No Papers", 1, 0)
+
+bucket$bad_seawalls <- as.numeric(dat$bad_embankments)
+
+bucket$bad_canals <- as.numeric(dat$bad_canals)
+
+bucket$bad_gates <- as.numeric(dat$bad_gates)
+
+bucket$non_ag_income <- as.numeric(dat$Annual_income_Non_Agriculture_combined_USD)
+
+bucket$eat_less <- as.numeric(dat$food_restriction)
+
+bucket$food_debt <- as.numeric(dat$food_debt)
+
 
 #correlation matrix for all significant factors
 mat <- cor(bucket, use = "complete.obs")
+corrplot(mat, order = "AOE", method = "color", addCoef.col = "gray", type = "lower")
 
 #names of corrplot
-r = rbind(c("Bad Floodgates", "Food Shortage in Magh", "Number of Males working in Agriculture",
-            "Member of Water Management Group", "Women Working", "Bad Canals",
-            "Seasonal Food Restriction", "Owns Farm", "Has Trade Income", "Non-Ag Income",
-            "Lowland", "Religion", "Number of Children", "Number of Rooms", "Men Working", "Insect Atk Frequency",
-            "Food Shortage in Poush", "House Head's Age", "Flood Frequency", "Migrant"))
+# r = rbind(c("Migration", "Religion", "Seasonal Hunger", "Non-Ag Income",
+#             "Family Size", "Number of Men", "Age of House Head", "Bad Canals",
+#             "Food Debt", "Bad Seawalls", "No Land Papers", "Low Land", "Bad Gates",
+#             "Drought", "Insect Attack", "Floods")) %>%
+#           corrRect(nameMat = r)
+
 corrplot(mat, order = "AOE", method = "number", type = "lower") %>%
          # method = "color" addCoef.col = "gray")
-  corrRect(nameMat = r)
+
 
 # use namesMat parameter EXAMPLE
 # r = rbind(c('eggs', 'catsize', 'airborne', 'milk'),
