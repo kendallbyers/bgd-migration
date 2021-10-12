@@ -261,6 +261,19 @@ dat <- dat %>%
   mutate(Annual_Income = sum(Annual_income_Agriculture_combined_USD, Annual_income_Non_Agriculture_combined_USD, na.rm = TRUE))
 summary(dat$Annual_Income)
 
+wmg_income <- dat %>%
+  filter(memb_wmg == 1) %>%
+  select(Annual_Income)
+
+summary(wmg_income)
+
+notwmg_income <- dat %>%
+  filter(memb_wmg == 0) %>%
+  select(Annual_Income)
+
+summary(notwmg_income)
+
+
 #Annual income from Remittance - Median = $707, Mean = $640/yr, although wider distribution than either local work
 dat <- dat %>%
   mutate(Annual_income_Remittance_USD = annual_income_remi / 84.75) %>% # One BDT = 84.75 USD
@@ -483,7 +496,7 @@ base<- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh + re
 basemod <- glm(base, family = binomial(link="probit"), data=dat)
 summary(basemod)
 
-mod1form <- formula("migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short")
+mod1form <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + farm_types + total_plot_area_ha + age_hh + religion_hh + low_land + food_short")
 mod1 <- glm(mod1form, family = binomial(link="probit"), data=dat)
 
 summary(mod1)
@@ -828,9 +841,9 @@ summary(poolmod)
                       # binarysalinity + memb_wmg + bad_gates + num_male_agri_lobor + salary_pension + income_bussiness")
 # sigmod <- glm(sigs, family = binomial(link="probit"), data=dat)
 
-export_summs(mod1, mod2, mod3, mod4, poolmod, sigmod, digits = 3, scale = TRUE,
-             model.names = c("Base", "Climate", "Infrastructure", "Economics", "Pooled Model", "Significant Fx"),
-             to.file = "word", file.name = "regressions_927_1241.docx")
+jtools::export_summs(mod1, mod2, mod3, mod4, poolmod, digits = 3, scale = TRUE,
+             model.names = c("Base", "Climate", "Infrastructure", "Economics", "Pooled Model"),
+             to.file = "word", file.name = "regressions_1010_2000.docx")
 
 probitmfx(mod1, data = dat)
 
