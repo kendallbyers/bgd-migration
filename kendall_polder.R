@@ -19,14 +19,12 @@ pacman::p_load(corrplot,
                officer,
                flextable)
 
-#TO DO FOR 10/4:
-# Compile analysis after marginal regression table is made
+#TO DO :
 
-# Refer to TEAMS if you get muddled on your next steps.
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/ksbyers/OneDrive - University of Arkansas/Documents/R/data/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/kenda/OneDrive - University of Arkansas/Rstudio Projects/PolderMigration/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
@@ -72,6 +70,10 @@ summary(dat$nature_migrants1) # perm = 94, seasonal = 71
 dat$nature_migrants2 <- as.factor(dat$nature_migrants2)
 summary(dat$nature_migrants2) #perm = 17, seasonal = 5
 
+# Determining duration of primary migration
+summary(dat$num_month_mig_1)
+hist(dat$num_month_mig_1)
+
 #Coding literacy
 dat$edu_hh_code <- ifelse(dat$edu_hh == "no school", "Illiterate", "Literate")
 dat$edu_hh_code=as.factor(dat$edu_hh_code)
@@ -90,6 +92,15 @@ summary(dat$both_literate) #An Illiterate Parent = 208, Both Literate = 773, NA 
 #papers or no papers for worked agricultural fields
 dat$farm_types <- ifelse(dat$papers_plot > 0, "Have Plot Papers", "No Papers")
 dat$farm_types=as.factor(dat$farm_types)
+
+#filtering farm types by religion
+summary(dat$farm_types)
+
+of_nopapers_muslims  <- dat %>%
+  filter(farm_types == "No Papers") %>%
+  select(religion_hh)
+summary(of_nopapers_muslims)
+
 
 #tenancy
 dat$sharecropping <- ifelse(dat$cultivate_without_papers > dat$papers_plot, "Tenant farmer", "Landowner")
@@ -232,34 +243,41 @@ dat$migrant_debt <- ifelse(dat$loan_mig_1 != "no loan"|
 dat$migrant_debt <- as.factor(dat$migrant_debt)
 summary(dat$migrant_debt) #Of migrants, 46 loans taken, 17 no loan
 
-#Annual income from Agriculture Sources -
+#Annual income from Agriculture Sources - Median = $318/yr, Mean = $461/yr
 
 dat <- dat %>%
   rowwise() %>%
   mutate(Annual_income_Agriculture_BDT = sum(annual_income_poultry, annual_income_fish, annual_income_vege,
                                                   annual_income_assests, annual_income_wage, annual_income_ren,
                                                   na.rm = TRUE)) %>%
-  mutate(Annual_income_Agriculture_combined_USD = Annual_income_Agriculture_BDT / 84.75) %>% # One USD = 84.75 BDT
+  mutate(Annual_income_Agriculture_combined_USD = Annual_income_Agriculture_BDT / 78.5) %>% # One USD = 78.5 BDT on avg in 2016
   select(-Annual_income_Agriculture_BDT)
 dat$Annual_income_Agriculture_combined_USD=as.integer(dat$Annual_income_Agriculture_combined_USD)
 
-summary(dat$Annual_income_Agriculture_combined_USD) #Median = $294/yr, Mean = $426/year
+summary(dat$Annual_income_Agriculture_combined_USD)
 
-#Annual income from Non-Agriculture Sources - Median = $117/yr, Mean = $352/yr
+#Annual income from Non-Agriculture Sources - Median = $127/yr, Mean = $380/yr
 dat <- dat %>%
   rowwise() %>%
   mutate(Annual_income_Non_Agriculture_BDT = sum(annual_income_wage_non_agri, annual_salary_pension, annual_income_bussi,
                                                  annual_income_transport, annual_income_caste_occu, annual_income_others,
                                                  na.rm = TRUE)) %>%
-  mutate(Annual_income_Non_Agriculture_combined_USD = Annual_income_Non_Agriculture_BDT / 84.75) %>% # One USD = 84.75 BDT
+  mutate(Annual_income_Non_Agriculture_combined_USD = Annual_income_Non_Agriculture_BDT /  78.5) %>% # One USD =  78.5 BDT on avg in 2016
   select(-Annual_income_Non_Agriculture_BDT)
 dat$Annual_income_Non_Agriculture_combined_USD=as.integer(dat$Annual_income_Non_Agriculture_combined_USD)
 summary(dat$Annual_income_Non_Agriculture_combined_USD)
 
+#computing annual income in USD
 dat <- dat %>%
-  rowwise() %>%
-  mutate(Annual_Income = sum(Annual_income_Agriculture_combined_USD, Annual_income_Non_Agriculture_combined_USD, na.rm = TRUE))
-summary(dat$Annual_Income)
+  mutate(Total_Annual_Income = Annual_income_Non_Agriculture_combined_USD + Annual_income_Agriculture_combined_USD)
+summary(dat$Total_Annual_Income)
+hist(dat$Total_Annual_Income)
+
+
+#dat <- dat %>%
+#  rowwise() %>%
+#  mutate(Annual_Income = sum(Annual_income_Agriculture_combined_USD, Annual_income_Non_Agriculture_combined_USD, na.rm = TRUE))
+#summary(dat$Annual_Income)
 
 wmg_income <- dat %>%
   filter(memb_wmg == 1) %>%
@@ -456,6 +474,18 @@ dat$hh_size <- dat$num_adults + dat$kids
 mean(dat$hh_size, na.rm = TRUE)
 hist(dat$hh_size)
 summary(dat$hh_size) #mean HH size is 5 people, median is 4
+
+#calculating total income per person
+dat <- dat %>%
+  mutate(Per_Capita = Total_Annual_Income / hh_size)
+summary(dat$Per_Capita)
+hist(dat$Per_Capita)
+
+#calculating poverty line in 2016 per person
+dat <- dat %>%
+  mutate(Per_Capita_daily = Total_Annual_Income / hh_size / 365)
+summary(dat$Per_Capita_daily)
+hist(dat$Per_Capita_daily)
 
 #calculating rice (kg) per capita
 
@@ -855,6 +885,123 @@ e5 <- mfx::probitmfx(poolmod, data = dat)
 
 texreg::wordreg(list(e1, e2, e3, e4, e5), file = "Marginal_Effects_10421_130.docx", booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
 
+#filtering by religion for migration
+ofmigrants_muslims <- dat %>%
+  filter(migration == "1") %>%
+  select(religion_hh)
+summary(ofmigrants_muslims)
+
+#filtering by religion for men working in agriculture
+
+hist(dat$num_male_agri_lobor)
+summary(dat$num_male_agri_lobor)
+of_agri_men_muslims <- dat %>%
+  filter(num_male_agri_lobor >= "1") %>%
+  select(religion_hh)
+summary(of_agri_men_muslims)
+
+#filtering by religion for salary or pension
+dat$salary_pension <- ifelse(dat$salary_pension == "Yes", 1, 0)
+dat$salary_pension = as.factor(dat$salary_pension)
+
+summary(dat$salary_pension)
+ofsalary_pension_muslims <- dat %>%
+  filter(salary_pension == "1") %>%
+  select(religion_hh)
+summary(ofsalary_pension_muslims)
+
+#filtering by religion for annual income and farm size
+dat$total
+
+#filtering by religion for tenancy
+ofsharecroppers_muslims <- dat %>%
+  filter(sharecropping == "Tenant farmer") %>%
+  select(religion_hh)
+summary(ofsharecroppers_muslims)
+
+#filtering by religion for lowland plots
+oflowland_muslims <- dat %>%
+  filter(low_land == "1") %>%
+  select(religion_hh)
+summary(oflowland_muslims)
+
+#filtering by religion for binarysalinity and freq_flood
+ofsalt_muslims <- dat %>%
+  filter(binarysalinity == "1") %>%
+  select(religion_hh)
+summary(ofsalt_muslims) #77/176 (44%) Muslims experienced saline destruction, 233/844 (28%) Hindus experienced saline destruction
+
+hist(dat$freq_flood)
+summary(dat$freq_flood)
+offlood_muslims <- dat %>%
+  filter(freq_flood > "2") %>%
+  select(religion_hh)
+summary(offlood_muslims) #62/176 (35%) Muslims experienced >2 years of flooding in past 5,
+#296/844 (35%) Hindus experienced >2 years of flooding in past 5
+
+#filtering by religion for freq_insect and freq_drought
+
+hist(dat$freq_insects)
+summary(dat$freq_insects)
+ofinsectattacked_muslims <- dat %>%
+  filter(freq_insects > "3") %>%
+  select(religion_hh)
+summary(ofinsectattacked_muslims)
+
+hist(dat$freq_drought)
+summary(dat$freq_drought)
+ofdrought_muslims <- dat %>%
+  filter(freq_drought > "1") %>%
+  select(religion_hh)
+summary(ofdrought_muslims)
+
+#filtering by religion for permanent migration and seasonal migration
+
+ofperm_migrant_muslims <- dat %>%
+  filter(nature_migrants1 == "permanent labor") %>%
+  select(religion_hh)
+summary(ofperm_migrant_muslims)
+
+ofseasonal_migrant_muslims <- dat %>%
+  filter(nature_migrants1 == "seasonal labor") %>%
+  select(religion_hh)
+summary(ofseasonal_migrant_muslims)
+
+#filtering by religion for migration abroad
+
+summary(dat$migration_place)
+ofabroad_migrant_muslims <- dat %>%
+  filter(migration_place == "Abroad") %>%
+  select(religion_hh)
+summary(ofabroad_migrant_muslims)
+
+#filtering by religion for income, household and farm size
+
+summary(dat$Total_Annual_Income)
+hist(dat$Total_Annual_Income)
+summary(dat$Per_Capita)
+
+ofrich_muslims <- dat %>%
+  filter(Per_Capita >= "185") %>%
+  select(religion_hh)
+summary(ofrich_muslims)
+
+ofpoor_muslims <- dat %>%
+  filter(Per_Capita < "185") %>%
+  select(religion_hh)
+summary(ofpoor_muslims)
+
+summary(dat$hh_size)
+ofbigfamily_muslims <- dat %>%
+  filter(hh_size >= "5") %>%
+  select(religion_hh)
+summary(ofbigfamily_muslims)
+
+summary(dat$total_plot_area_ha)
+offarmsize_muslims <- dat %>%
+  filter(total_plot_area_ha >= "0.4047") %>%
+  select(religion_hh)
+summary(offarmsize_muslims)
 
 # texreg::screenreg(list(mod1, mod2, mod3, mod4, poolmod), booktabs = TRUE,
 #                   dcolumn = TRUE, stars = c(.01, .05, .1))
