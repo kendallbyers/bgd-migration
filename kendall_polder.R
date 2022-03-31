@@ -19,19 +19,15 @@ pacman::p_load(corrplot,
                officer,
                flextable)
 
-#TO DO :
+#TO DO 3/31/22: Delete extra (commented) unused code
 
 ###############################################################################
 
 #Load original polder data file
-dat <- read.csv("C:/Users/kenda/OneDrive - University of Arkansas/Rstudio Projects/PolderMigration/HHdata_cleanNEW.csv")
+dat <- read.csv("C:/Users/ksbyers/OneDrive - University of Arkansas/Rstudio Projects/PolderMigration/HHdata_cleanNEW.csv")
 
 dat <- data.table(dat)
 View(dat)
-
-#Load preanalyzed excel file (temporary for experiment - remove before publication)
-# mig <- read.csv("C:/Users/Kendall Byers/Documents/R/bgd-migration/HHdata_cleanNEW.csv")
-# View(mig)
 
 dat$age_hh=as.numeric(dat$age_hh)
 dat$religion_hh=as.factor(dat$religion_hh)
@@ -57,9 +53,6 @@ dat$month_stock=as.numeric(dat$month_stock)
 # Our Dependent Variable: At Least One Household Migrant
 dat$migration <- ifelse(dat$num_migrants > 0, 1, 0)
 dat$migration = as.factor(dat$migration)
-
-#to temporary file 'mig'
-# mig$migration <- dat$migration
 
 #165 households with at least one migrant, 860 with none
 summary(dat$migration)
@@ -92,15 +85,6 @@ summary(dat$both_literate) #An Illiterate Parent = 208, Both Literate = 773, NA 
 #papers or no papers for worked agricultural fields
 dat$farm_types <- ifelse(dat$papers_plot > 0, "Have Plot Papers", "No Papers")
 dat$farm_types=as.factor(dat$farm_types)
-
-#filtering farm types by religion
-summary(dat$farm_types)
-
-of_nopapers_muslims  <- dat %>%
-  filter(farm_types == "No Papers") %>%
-  select(religion_hh)
-summary(of_nopapers_muslims)
-
 
 #tenancy
 dat$sharecropping <- ifelse(dat$cultivate_without_papers > dat$papers_plot, "Tenant farmer", "Landowner")
@@ -925,6 +909,14 @@ oflowland_muslims <- dat %>%
   select(religion_hh)
 summary(oflowland_muslims)
 
+#filtering farm ownership papers by religion
+summary(dat$farm_types)
+
+of_nopapers_muslims  <- dat %>%
+  filter(farm_types == "No Papers") %>%
+  select(religion_hh)
+summary(of_nopapers_muslims)
+
 #filtering by religion for binarysalinity and freq_flood
 ofsalt_muslims <- dat %>%
   filter(binarysalinity == "1") %>%
@@ -1149,10 +1141,3 @@ corrplot(mat, order = "AOE", method = "number", type = "lower") %>%
 #          rice_kg_eaten_7days_kg_per_capita + month_stock + adoption_combined")
 # migmod <- glm(mig_formula, family = binomial(link="probit"), data=mig)
 # summary(migmod) #husking_machine yes (99%), tredle_pump yes (99%), sew_machine yes (95%), hh_size (99.9%)
-
-# Learning tbl_summary() and gtsummary()
-head(trial)
-
-trial2 <- trial %>% select(trt,age,grade)
-trial2 %>% tbl_summary()
-trial2 %>% tbl_summary(by = trt) %>% add_p()
