@@ -19,7 +19,7 @@ pacman::p_load(corrplot,
                officer,
                flextable)
 
-#TO DO 3/31/22: Delete extra (commented) unused code
+#TO DO 7/6/22: Add Mod1 through Mod4 for both Muslim and Hindu subset for closer analysis
 
 ###############################################################################
 
@@ -66,6 +66,19 @@ summary(dat$nature_migrants2) #perm = 17, seasonal = 5
 # Determining duration of primary migration
 summary(dat$num_month_mig_1)
 hist(dat$num_month_mig_1)
+
+dat$num_year_mig_1 <- (dat$num_month_mig_1 / 12)
+summary(dat$num_year_mig_1)
+hist(dat$num_year_mig_1)
+
+#how many migrants left within 5 years? 118 of 165, or 71.5 % (28.4% left more than 5 years ago)
+ofmig_recent <- dat %>%
+  filter(migration == 1) %>%
+  select(num_month_mig_1)
+summary(dat$num_month_mig_1 <= 60)
+
+# select only those who migrated 5 years or less ago, for testing against migration factors
+recent <- dat[dat$num_year_mig_1 <= 5]
 
 #Coding literacy
 dat$edu_hh_code <- ifelse(dat$edu_hh == "no school", "Illiterate", "Literate")
@@ -258,10 +271,10 @@ summary(dat$Total_Annual_Income)
 hist(dat$Total_Annual_Income)
 
 
-#dat <- dat %>%
-#  rowwise() %>%
-#  mutate(Annual_Income = sum(Annual_income_Agriculture_combined_USD, Annual_income_Non_Agriculture_combined_USD, na.rm = TRUE))
-#summary(dat$Annual_Income)
+dat <- dat %>%
+  rowwise() %>%
+  mutate(Annual_Income = sum(Annual_income_Agriculture_combined_USD, Annual_income_Non_Agriculture_combined_USD, na.rm = TRUE))
+summary(dat$Annual_Income)
 
 wmg_income <- dat %>%
   filter(memb_wmg == 1) %>%
@@ -510,7 +523,7 @@ base<- formula("migration ~ hh_size + num_adult_male + edu_hh_code + age_hh + re
 basemod <- glm(base, family = binomial(link="probit"), data=dat)
 summary(basemod)
 
-mod1form <- formula("migration ~ hh_size + num_adult_male + edu_hh_code + farm_types + total_plot_area_ha + age_hh + religion_hh + low_land + food_short")
+mod1form <- formula("migration ~ hh_size + num_adult_male + age_hh + religion_hh + low_land + food_short")
 mod1 <- glm(mod1form, family = binomial(link="probit"), data=dat)
 
 summary(mod1)
@@ -857,9 +870,9 @@ summary(poolmod)
 
 jtools::export_summs(mod1, mod2, mod3, mod4, poolmod, digits = 3, scale = TRUE,
              model.names = c("Base", "Climate", "Infrastructure", "Economics", "Pooled Model"),
-             to.file = "word", file.name = "regressions_1010_2000.docx")
+             to.file = "word", file.name = "regressions_0630_1200.docx")
 
-probitmfx(mod1, data = dat)
+probitmfx(mod1, mod2, mod3, mod4, poolmod, data = dat)
 
 e1 <- mfx::probitmfx(mod1, data = dat)
 e2 <- mfx::probitmfx(mod2, data = dat)
@@ -867,7 +880,9 @@ e3 <- mfx::probitmfx(mod3, data = dat)
 e4 <- mfx::probitmfx(mod4, data = dat)
 e5 <- mfx::probitmfx(poolmod, data = dat)
 
-texreg::wordreg(list(e1, e2, e3, e4, e5), file = "Marginal_Effects_10421_130.docx", booktabs = TRUE, dcolumn = TRUE, stars = c(.01, .05, .1))
+texreg::screenreg(list(e1, e2, e3, e4, e5), booktabs = TRUE, dcolumn = TRUE, stars = c(.001, .01, .05, .1))
+
+texreg::wordreg(list(e1, e2, e3, e4, e5), file = "Marginal_Effects_063022_1212.docx", booktabs = TRUE, dcolumn = TRUE, stars = c(.001, .01, .05, .1))
 
 #filtering by religion for migration
 ofmigrants_muslims <- dat %>%
@@ -994,6 +1009,46 @@ offarmsize_muslims <- dat %>%
   filter(total_plot_area_ha >= "0.4047") %>%
   select(religion_hh)
 summary(offarmsize_muslims)
+
+
+
+#creating subset for Muslim and subset for Hindu
+
+#dat$muslim <- ifelse(dat$religion_hh == "islam", 1, 0)
+#dat$muslim = as.factor(dat$muslim)
+#summary(dat$muslim)
+
+
+#dat$hindu <- ifelse(dat$religion_hh == "hindu", 1, 0)
+#dat$hindu = as.factor(dat$hindu)
+#summary(dat$hindu)
+
+musmove <- dat[which(dat$religion_hh =="islam"),]
+View(musmove)
+
+hindmove <-  dat[which(dat$religion_hh =="hindu"),]
+View(hindmove)
+
+#running regression on each subset
+
+poolmusform <- formula("migration ~ hh_size + num_adult_male + age_hh + low_land + food_short + freq_flood + freq_drought + freq_insects +
+                       binarysalinity + memb_wmg + bad_canals + bad_gates + sharecropping +
+                       num_male_agri_lobor + salary_pension + income_bussiness")
+poolmus <- glm(poolmusform, family = binomial(link="probit"), data=musmove)
+summary(poolmus) #only significance is in drought incidence (p < .01)
+
+poolhindform <- formula("migration ~ hh_size + num_adult_male + age_hh + low_land + food_short + freq_flood + freq_drought + freq_insects +
+                       binarysalinity + memb_wmg + bad_canals + bad_gates + sharecropping +
+                       num_male_agri_lobor + salary_pension + income_bussiness")
+poolhind <- glm(poolhindform, family = binomial(link="probit"), data=hindmove)
+summary(poolhind) #only significance is in low_land, freq_flood, bad_gates, salary_pension (p < .05) and memb_wmg (p < .1)
+
+
+
+
+
+
+
 
 # texreg::screenreg(list(mod1, mod2, mod3, mod4, poolmod), booktabs = TRUE,
 #                   dcolumn = TRUE, stars = c(.01, .05, .1))
